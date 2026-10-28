@@ -1,0 +1,1082 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>CNC Electronics Design Studio</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap">
+<style>
+/* Layout: drafting-table app. Left rail = machine library, centre = diagram sheet, right drawer = part / wire detail. */
+:root{
+  --bg:#e8edef; --panel:#f6f8f9; --ink:#10222b; --muted:#566b74; --line:#c3cfd4;
+  --accent:#0a6f6b; --accent-ink:#ffffff; --sheet:#fbfcfc; --grid:#e3eaed;
+  --ok:#17794a; --warn:#a85a05; --bad:#b42318; --info:#2a5db0;
+  --w-pwr:#d93a3f; --w-gnd:#1b2a31; --w-step:#1f9d57; --w-dir:#2f6fe0; --w-en:#12805a; --w-lim:#c79300;
+  --w-spn:#e07a1a; --w-fb:#7c4ddb; --w-mot:#0e9aa0; --w-usb:#6b7c85; --w-therm:#b0489a; --w-heat:#c7511f;
+  --sans:"IBM Plex Sans Arabic","Segoe UI",Tahoma,system-ui,sans-serif; --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0c181e; --panel:#13242c; --ink:#dce8ec; --muted:#8ba2ac; --line:#26404a;
+  --accent:#41c7bc; --accent-ink:#06201e; --sheet:#0f1e25; --grid:#162a33;
+  --ok:#4cc58a; --warn:#e0a24a; --bad:#ff7a6e; --info:#7fa8f0; --w-gnd:#9fb4bc; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0c181e; --panel:#13242c; --ink:#dce8ec; --muted:#8ba2ac; --line:#26404a;
+  --accent:#41c7bc; --accent-ink:#06201e; --sheet:#0f1e25; --grid:#162a33;
+  --ok:#4cc58a; --warn:#e0a24a; --bad:#ff7a6e; --info:#7fa8f0; --w-gnd:#9fb4bc; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.55;
+  padding-block:0;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1500px;margin:0 auto;padding-block:16px 40px;display:flex;flex-direction:column;gap:14px}
+header.top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
+.brand{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.brand h1{margin:0;font-size:20px;font-weight:600;letter-spacing:.01em;text-wrap:balance}
+.brand span{color:var(--muted);font-size:12px}
+.crumbs{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:13px;color:var(--muted)}
+.crumbs button{background:none;border:0;padding:2px 4px;color:var(--accent);text-decoration:underline;text-underline-offset:3px}
+.crumbs b{color:var(--ink);font-weight:500}
+.btn{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:6px 11px;font-size:13px}
+.btn:hover{border-color:var(--accent)}
+.btn.pri{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(230px,1fr))}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px;text-align:start;display:flex;flex-direction:column;gap:6px;min-width:0}
+button.tile:hover{border-color:var(--accent)}
+.tile h3{margin:0;font-size:15px;font-weight:600}
+.tile p{margin:0;color:var(--muted);font-size:12.5px}
+.tile svg{width:40px;height:40px;color:var(--accent)}
+.badge{display:inline-block;align-self:flex-start;font-size:11px;padding:1px 8px;border-radius:99px;border:1px solid currentColor;font-weight:500;white-space:nowrap}
+.b-pre{color:var(--warn)} .b-ok{color:var(--ok)} .b-inc{color:var(--bad)} .b-plan{color:var(--muted)} .b-info{color:var(--info)}
+h2.sec{font-size:16px;margin:4px 0 0;font-weight:600}
+.note{background:var(--panel);border:1px solid var(--line);border-inline-start:3px solid var(--warn);border-radius:6px;padding:9px 12px;font-size:12.5px;color:var(--muted)}
+.tiers{display:flex;flex-wrap:wrap;gap:8px}
+.tiers .btn{display:flex;gap:8px;align-items:center}
+.stage{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:12px;align-items:start}
+@media (max-width:980px){.stage{grid-template-columns:minmax(0,1fr)}}
+.sheet{background:var(--sheet);border:1px solid var(--line);border-radius:8px;overflow:hidden;position:relative}
+.toolbar{display:flex;flex-wrap:wrap;gap:6px;padding:8px;border-bottom:1px solid var(--line);background:var(--panel);align-items:center}
+.toolbar label{display:flex;gap:5px;align-items:center;font-size:12.5px;padding:2px 6px}
+.canvas{height:min(72vh,720px);min-height:380px;touch-action:none;cursor:grab;direction:ltr;
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:24px 24px}
+.canvas.drag{cursor:grabbing}
+.canvas svg{width:100%;height:100%;display:block;direction:ltr;font-family:var(--sans)}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;padding:8px 10px;border-top:1px solid var(--line);font-size:12px;direction:ltr}
+.legend i{display:inline-block;width:18px;height:0;border-top:3px solid;vertical-align:middle;margin-inline-end:5px}
+.drawer{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.drawer h3{margin:0;font-size:15px}
+.kv{display:grid;grid-template-columns:auto minmax(0,1fr);gap:3px 10px;font-size:12.5px}
+.kv dt{color:var(--muted)} .kv dd{margin:0;overflow-wrap:anywhere}
+.mono{font-family:var(--mono);font-size:12px;direction:ltr;unicode-bidi:isolate}
+.tabs{display:flex;flex-wrap:wrap;gap:4px;border-bottom:1px solid var(--line)}
+.tabs button{background:none;border:0;border-bottom:2px solid transparent;padding:6px 10px;color:var(--muted)}
+.tabs button[aria-selected="true"]{color:var(--ink);border-color:var(--accent)}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:6px;background:var(--panel)}
+table{border-collapse:collapse;width:100%;font-size:12.5px}
+th,td{text-align:start;padding:5px 9px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-weight:600;color:var(--muted);background:var(--bg);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td.num{font-variant-numeric:tabular-nums}
+.chk{display:flex;gap:8px;align-items:flex-start;font-size:13px;padding:4px 0}
+.chk .d{flex:none;width:9px;height:9px;border-radius:50%;margin-top:7px}
+.d-ok{background:var(--ok)} .d-warn{background:var(--warn)} .d-err{background:var(--bad)}
+.sw{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-1px;margin-inline-end:5px;border:1px solid var(--line)}
+.exports{display:flex;flex-wrap:wrap;gap:6px}
+.toast{position:fixed;inset-inline:0;bottom:calc(14px + env(safe-area-inset-bottom,0px));display:flex;justify-content:center;pointer-events:none;z-index:20}
+.toast div{background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:6px;font-size:13px;max-width:90vw}
+svg .cmp{cursor:pointer}
+svg .wire{cursor:pointer;fill:none;stroke-linejoin:round}
+svg text{user-select:none}
+@media (prefers-reduced-motion:no-preference){.btn,.tile{transition:border-color .15s}}
+</style>
+
+<div class="wrap">
+<header class="top"><div class="brand"><h1>CNC Electronics Design Studio</h1><span>مكتبة دوائر CNC والطابعات ثلاثية الأبعاد · preliminary data, check datasheets before wiring</span></div></header>
+<main id="app"></main>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+/* ===== DATA LAYER 1: component models (ComponentModels + ComponentPins) =====
+   pin spec: [id, side(L|R), cls, desc, extra]
+   cls = wire class this pin normally carries (power, gnd, step, dir, en, lim, spn, mot, fb, usb, therm, heat, v5)
+   pinStatus: 'documented' = names/functions taken from the maker's docs or firmware source named in `src`
+              'functional' = layout is drawn by function, not by physical pin order of the board
+              'unverified' = pin names are NOT confirmed against a datasheet; never shown as exact          */
+const SRC = {
+  grbl:'https://github.com/gnea/grbl/blob/master/grbl/cpu_map/cpu_map_atmega328p.h',
+  marlinRamps:'https://github.com/MarlinFirmware/Marlin/blob/bugfix-2.1.x/Marlin/src/pins/ramps/pins_RAMPS.h',
+  drv8825:'https://www.ti.com/product/DRV8825', a4988:'https://www.allegromicro.com/en/products/motor-drivers/brush-dc-motor-drivers/a4988',
+  dm542:'https://www.leadshine.com/product-detail/DM542.html'
+};
+const P=(id,side,cls,desc,x)=>Object.assign({id,side,cls,desc},x||{});
+const COMPONENTS={
+ psu24:{type:'psu',name:'DC power supply 24 V / 10 A',mfr:'Generic (assumed)',model:'24V 10A 240W',volt:'24 V DC',current:'10 A',power:240,
+  rail:{v:24},pinStatus:'functional',generic:true,w:176,
+  pins:[P('AC_L','L','pwr','Mains line input'),P('AC_N','L','pwr','Mains neutral input'),P('PE','L','gnd','Protective earth'),
+        P('+V','R','power','24 V DC output +',{v:24}),P('-V','R','gnd','24 V DC output return')],
+  note:'Generic mains-powered DC supply. Mains-side wiring (inlet, switch, fuse, earth) is not drawn in this sheet. Choose a certified unit.'},
+ psu24b:{type:'psu',name:'DC power supply 24 V / 15 A',mfr:'Generic (assumed)',model:'24V 15A 360W',volt:'24 V DC',current:'15 A',power:360,
+  rail:{v:24},pinStatus:'functional',generic:true,w:176,
+  pins:[P('AC_L','L','pwr','Mains line input'),P('AC_N','L','pwr','Mains neutral input'),P('PE','L','gnd','Protective earth'),
+        P('+V','R','power','24 V DC output +',{v:24}),P('-V','R','gnd','24 V DC output return')],
+  note:'Generic mains-powered DC supply. Mains-side wiring is not drawn in this sheet.'},
+ psu12:{type:'psu',name:'DC power supply 12 V / 30 A',mfr:'Generic (assumed)',model:'12V 30A 360W',volt:'12 V DC',current:'30 A',power:360,
+  rail:{v:12},pinStatus:'functional',generic:true,w:176,
+  pins:[P('AC_L','L','pwr','Mains line input'),P('AC_N','L','pwr','Mains neutral input'),P('PE','L','gnd','Protective earth'),
+        P('+V','R','power','12 V DC output +',{v:12}),P('-V','R','gnd','12 V DC output return')],
+  note:'Generic mains-powered DC supply. Mains-side wiring is not drawn in this sheet.'},
+ fuse:{type:'fuse',name:'Inline fuse holder',mfr:'Generic',model:'Blade/ATO fuse 10 A',volt:'≤ 32 V',current:'10 A',power:0,pinStatus:'functional',generic:true,w:130,
+  pins:[P('IN','L','power','Supply side'),P('OUT','R','power','Load side')],note:'Rate the fuse for the wire gauge and the total load, not above it.'},
+ estop:{type:'estop',name:'Emergency stop (NC contact)',mfr:'Generic',model:'Mushroom e-stop, 1 NC',volt:'≤ 30 V DC',current:'≥ 10 A',power:0,pinStatus:'functional',generic:true,w:150,
+  pins:[P('NC_A','L','power','Normally-closed contact A'),P('NC_B','R','power','Normally-closed contact B')],
+  note:'Opens the motor/spindle supply when pressed. Use a latching type with a contact rating above the circuit current.'},
+ pc:{type:'pc',name:'Host PC (USB)',mfr:'—',model:'USB-A host',volt:'5 V',current:'0.5 A',power:0,pinStatus:'functional',w:120,
+  pins:[P('USB','R','usb','USB data and 5 V to the controller')],note:'Runs the G-code sender (for example UGS or CNCjs).'},
+ uno_cnc:{type:'mcu',name:'Controller: Arduino UNO R3 + CNC Shield V3',mfr:'Arduino / community shield',model:'UNO R3 + CNC Shield V3 (GRBL 1.1)',
+  volt:'5 V logic, motor supply 12–36 V',current:'—',power:3,pinStatus:'documented',src:SRC.grbl,w:208,
+  pins:[P('USB','L','usb','USB-B to host PC'),P('VMOT_IN','L','power','Motor supply input (shield screw terminal)',{vmin:12,vmax:36}),P('GND_PWR','L','gnd','Motor supply return'),
+        P('X_LIM','L','lim','D9, X limit input',{arduino:'D9'}),P('Y_LIM','L','lim','D10, Y limit input',{arduino:'D10'}),P('Z_LIM','L','lim','D12, Z limit input',{arduino:'D12'}),
+        P('GND','L','gnd','Signal ground header'),
+        P('X_STEP','R','step','D2, X step',{arduino:'D2'}),P('X_DIR','R','dir','D5, X direction',{arduino:'D5'}),
+        P('Y_STEP','R','step','D3, Y step',{arduino:'D3'}),P('Y_DIR','R','dir','D6, Y direction',{arduino:'D6'}),
+        P('Z_STEP','R','step','D4, Z step',{arduino:'D4'}),P('Z_DIR','R','dir','D7, Z direction',{arduino:'D7'}),
+        P('EN','R','en','D8, shared driver enable (active low)',{arduino:'D8'}),
+        P('SPN_PWM','R','spn','D11, spindle PWM (GRBL 1.1)',{arduino:'D11'}),P('SPN_EN','R','spn','D13, spindle enable (GRBL 1.1 default)',{arduino:'D13'}),
+        P('+5V','R','v5','5 V logic output',{v:5}),P('GND_S','R','gnd','Signal ground')],
+  note:'Pin assignments follow the GRBL 1.1 default ATmega328P cpu_map. Confirm your firmware build uses the default map. Shield jumpers set microstepping.'},
+ drv8825:{type:'driver',name:'Stepper driver module (plug-in)',mfr:'Texas Instruments chip, Pololu-style module',model:'DRV8825',volt:'8.2–45 V motor supply',current:'2.5 A/phase max with cooling',
+  power:1,imax:2.5,pinStatus:'functional',src:SRC.drv8825,w:176,
+  pins:[P('EN','L','en','Enable (active low)'),P('STEP','L','step','Step input'),P('DIR','L','dir','Direction input'),
+        P('VMOT','R','power','Motor supply 8.2–45 V',{vmin:8.2,vmax:45}),P('GND','R','gnd','Power ground'),
+        P('A1','R','mot','Coil A output'),P('A2','R','mot','Coil A output'),P('B1','R','mot','Coil B output'),P('B2','R','mot','Coil B output')],
+  note:'Only the pins used on a CNC Shield are drawn (M0–M2 are set by shield jumpers, RESET and SLEEP are tied on the shield). The diagram draws pins by function, not by the module’s physical pin order. Set the current limit with the on-board trimmer.'},
+ nema17:{type:'motor',name:'NEMA 17 bipolar stepper',mfr:'Generic (assumed 1.5 A class)',model:'NEMA17 1.5 A/phase',volt:'rated by current',current:'1.5 A/phase',power:30,imax:1.5,pinStatus:'functional',generic:true,w:140,
+  pins:[P('A+','L','mot','Coil A start'),P('A-','L','mot','Coil A end'),P('B+','L','mot','Coil B start'),P('B-','L','mot','Coil B end')],
+  note:'Identify the two coil pairs with a multimeter before wiring. Swapping the leads of one coil reverses direction.'},
+ nema23:{type:'motor',name:'NEMA 23 bipolar stepper',mfr:'Generic (assumed 2.8 A class)',model:'NEMA23 2.8 A/phase',volt:'rated by current',current:'2.8 A/phase',power:60,imax:2.8,pinStatus:'functional',generic:true,w:140,
+  pins:[P('A+','L','mot','Coil A start'),P('A-','L','mot','Coil A end'),P('B+','L','mot','Coil B start'),P('B-','L','mot','Coil B end')],
+  note:'Identify the two coil pairs with a multimeter before wiring.'},
+ dm542:{type:'driver',name:'Digital stepper driver',mfr:'Leadshine',model:'DM542',volt:'20–50 V DC',current:'1.0–4.2 A (peak 4.2 A)',power:3,imax:4.2,pinStatus:'functional',src:SRC.dm542,w:176,
+  pins:[P('PUL+','L','step','Pulse input +'),P('PUL-','L','step','Pulse input −'),P('DIR+','L','dir','Direction input +'),P('DIR-','L','dir','Direction input −'),
+        P('ENA+','L','en','Enable input + (not wired here)'),P('ENA-','L','en','Enable input − (not wired here)'),
+        P('A+','R','mot','Motor coil A'),P('A-','R','mot','Motor coil A'),P('B+','R','mot','Motor coil B'),P('B-','R','mot','Motor coil B'),
+        P('+VDC','R','power','Supply 20–50 V',{vmin:20,vmax:50}),P('GND','R','gnd','Supply return')],
+  note:'Signal inputs are opto-isolated for 5 V logic. DIP switches set current and microstepping and must be set from the DM542 manual before power-up. Terminal order on the physical unit is not reproduced here.'},
+ cl57:{type:'driver',name:'Closed-loop stepper driver',mfr:'Not confirmed',model:'CL57-class (model to confirm)',volt:'unconfirmed',current:'unconfirmed',power:5,imax:null,pinStatus:'unverified',w:176,
+  pins:[P('PUL+','L','step','Pulse input + (unconfirmed)'),P('PUL-','L','step','Pulse input − (unconfirmed)'),P('DIR+','L','dir','Direction input + (unconfirmed)'),P('DIR-','L','dir','Direction input − (unconfirmed)'),
+        P('ALM+','L','fb','Alarm output + (unconfirmed)'),P('ALM-','L','fb','Alarm output − (unconfirmed)'),
+        P('A+','R','mot','Motor coil A (unconfirmed)'),P('A-','R','mot','Motor coil A (unconfirmed)'),P('B+','R','mot','Motor coil B (unconfirmed)'),P('B-','R','mot','Motor coil B (unconfirmed)'),
+        P('+VDC','R','power','Supply (unconfirmed)'),P('GND','R','gnd','Supply return')],
+  note:'Pin names are placeholders. Check the exact driver datasheet, including the encoder cable, before wiring. Not shown as an exact model.'},
+ nema23cl:{type:'motor',name:'NEMA 23 closed-loop stepper (with encoder)',mfr:'Not confirmed',model:'NEMA23 + encoder (model to confirm)',volt:'unconfirmed',current:'unconfirmed',power:70,imax:null,pinStatus:'unverified',w:160,
+  pins:[P('A+','L','mot','Coil A (unconfirmed)'),P('A-','L','mot','Coil A (unconfirmed)'),P('B+','L','mot','Coil B (unconfirmed)'),P('B-','L','mot','Coil B (unconfirmed)')],
+  note:'The encoder connector and its pinout are not included until the exact motor and driver pair is chosen.'},
+ lim:{type:'switch',name:'Mechanical limit switch',mfr:'Generic',model:'Micro switch, NO (or NC) contact',volt:'≤ 5 V logic',current:'< 10 mA',power:0,pinStatus:'functional',generic:true,w:128,
+  pins:[P('COM','R','gnd','Common, to ground'),P('NO','R','lim','Normally open contact, to limit input')],
+  note:'GRBL limit inputs use internal pull-ups, so the switch closes the input to ground. Use shielded cable on long runs.'},
+ mosfet:{type:'mosfet',name:'PWM MOSFET switch module',mfr:'Generic (assumed logic-level, 5–36 V / 15 A)',model:'Generic PWM driver module',volt:'5–36 V',current:'15 A',power:0,pinStatus:'functional',generic:true,w:176,
+  pins:[P('PWM','L','spn','PWM signal in (5 V)'),P('GND_S','L','gnd','Signal ground'),
+        P('VIN+','R','power','Load supply +',{vmin:5,vmax:36}),P('VIN-','R','gnd','Load supply return'),P('OUT+','R','spn','Switched output +'),P('OUT-','R','spn','Switched output −')],
+  note:'Pick a module with a MOSFET that is fully on at 5 V gate drive. Many cheap modules use parts that are not. Add a flyback diode across an inductive load.'},
+ spindle:{type:'spindle',name:'DC spindle motor',mfr:'Generic (assumed 24 V / 3 A)',model:'775-class DC spindle 24 V',volt:'24 V DC',current:'3 A',power:72,pinStatus:'functional',generic:true,w:140,rail:{v:24},
+  pins:[P('+','L','spn','Motor +',{vmin:12,vmax:30}),P('-','L','spn','Motor −')],note:'Assumed light-duty engraving spindle. Heavier routing needs a larger spindle and VFD.'},
+ /* ---- 3D printer parts ---- */
+ mega_ramps:{type:'mcu',name:'Controller: Arduino Mega 2560 + RAMPS 1.4',mfr:'Arduino / RepRap',model:'Mega 2560 + RAMPS 1.4 (Marlin)',volt:'12 V in, 5 V logic',current:'5 A main + 11 A heated bed (board limits)',power:5,
+  pinStatus:'documented',src:SRC.marlinRamps,w:226,
+  pins:[P('USB','L','usb','USB-B to host PC'),P('PWR_MAIN+','L','power','5 A input (steppers, hotend, fan)',{vmin:11,vmax:35}),P('PWR_MAIN-','L','gnd','Return'),
+        P('PWR_BED+','L','power','11 A heated-bed input',{vmin:11,vmax:35}),P('PWR_BED-','L','gnd','Return'),
+        P('X_MIN','L','lim','D3, X min endstop',{arduino:'D3'}),P('Y_MIN','L','lim','D14, Y min endstop',{arduino:'D14'}),P('Z_MIN','L','lim','D18, Z min endstop',{arduino:'D18'}),
+        P('X_MAX','L','lim','D2, X max endstop (delta tower A)',{arduino:'D2'}),P('Y_MAX','L','lim','D15, Y max endstop (delta tower B)',{arduino:'D15'}),P('Z_MAX','L','lim','D19, Z max endstop (delta tower C)',{arduino:'D19'}),P('T2','L','therm','A15, second thermistor',{arduino:'A15'}),
+        P('T0','L','therm','A13, hotend thermistor',{arduino:'A13'}),P('T1','L','therm','A14, bed thermistor',{arduino:'A14'}),P('GND','L','gnd','Signal ground'),
+        P('X_STEP','R','step','A0 (54)',{arduino:'54'}),P('X_DIR','R','dir','A1 (55)',{arduino:'55'}),P('X_EN','R','en','D38',{arduino:'38'}),
+        P('Y_STEP','R','step','A6 (60)',{arduino:'60'}),P('Y_DIR','R','dir','A7 (61)',{arduino:'61'}),P('Y_EN','R','en','A2 (56)',{arduino:'56'}),
+        P('Z_STEP','R','step','D46',{arduino:'46'}),P('Z_DIR','R','dir','D48',{arduino:'48'}),P('Z_EN','R','en','A8 (62)',{arduino:'62'}),
+        P('E0_STEP','R','step','D26',{arduino:'26'}),P('E0_DIR','R','dir','D28',{arduino:'28'}),P('E0_EN','R','en','D24',{arduino:'24'}),
+        P('D10_HOTEND','R','heat','D10, hotend MOSFET output (low side)',{arduino:'D10'}),P('D8_BED','R','heat','D8, bed MOSFET output (low side)',{arduino:'D8'}),
+        P('D9_FAN','R','heat','D9, part-cooling fan output (low side)',{arduino:'D9'}),
+        P('D9_HOTEND2','R','heat','D9, second hotend output (EEB layout, same output as the fan)',{arduino:'D9'}),P('E1_STEP','R','step','D36',{arduino:'36'}),P('E1_DIR','R','dir','D34',{arduino:'34'}),P('E1_EN','R','en','D30',{arduino:'30'}),
+        P('VMOT','R','power','Motor supply to driver sockets (fed from the 5 A input)'),P('+5V','R','v5','Logic 5 V',{v:5}),P('GND_S','R','gnd','Signal ground')],
+  note:'Marlin RAMPS default pin map. Confirm against the Marlin build you flash. RAMPS has two separate power inputs: 5 A (steppers, hotend, fan) and 11 A (bed). RAMPS 1.4 is normally run at 12 V or 24 V; for 24 V use 24 V-rated heaters and fans and read the board notes.'},
+ a4988:{type:'driver',name:'Stepper driver module (plug-in)',mfr:'Allegro chip, Pololu-style module',model:'A4988',volt:'8–35 V motor supply',current:'2 A/phase max with cooling',power:1,imax:2,pinStatus:'functional',src:SRC.a4988,w:176,
+  pins:[P('EN','L','en','Enable (active low)'),P('STEP','L','step','Step input'),P('DIR','L','dir','Direction input'),
+        P('VMOT','R','power','Motor supply 8–35 V',{vmin:8,vmax:35}),P('GND','R','gnd','Power ground'),
+        P('1A','R','mot','Coil 1 output'),P('1B','R','mot','Coil 1 output'),P('2A','R','mot','Coil 2 output'),P('2B','R','mot','Coil 2 output')],
+  note:'Only the pins used on RAMPS are drawn. MS1–MS3 are set by RAMPS jumpers. Pins are drawn by function, not physical order. Set the current limit with the trimmer.'},
+ nema17p:{type:'motor',name:'NEMA 17 stepper (printer)',mfr:'Generic (assumed 1.2 A class)',model:'NEMA17 1.2 A/phase',volt:'rated by current',current:'1.2 A/phase',power:15,imax:1.2,pinStatus:'functional',generic:true,w:140,
+  pins:[P('1A','L','mot','Coil 1'),P('1B','L','mot','Coil 1'),P('2A','L','mot','Coil 2'),P('2B','L','mot','Coil 2')],note:'Match coil pairs to the driver outputs.'},
+ bed:{type:'heater',name:'Heated bed (silicone pad)',mfr:'Generic (assumed 12 V / 120 W)',model:'Silicone heater 12 V 120 W',volt:'12 V DC',current:'10 A',power:120,pinStatus:'functional',generic:true,w:150,
+  pins:[P('+','L','power','Supply +',{vmin:10,vmax:14}),P('-','L','heat','Switched return (to MOSFET)')],note:'10 A is close to the RAMPS 11 A input limit. Use short, thick wires, or switch the bed through an external relay.'},
+ hotend:{type:'heater',name:'Hotend heater cartridge',mfr:'Generic (assumed 12 V / 40 W)',model:'Cartridge 12 V 40 W',volt:'12 V DC',current:'3.3 A',power:40,pinStatus:'functional',generic:true,w:150,
+  pins:[P('+','L','power','Supply +',{vmin:10,vmax:14}),P('-','L','heat','Switched return (to MOSFET)')],note:'Always pair with firmware thermal-runaway protection.'},
+ thermistor:{type:'therm',name:'NTC thermistor 100 kΩ',mfr:'Generic',model:'100k NTC (Marlin table type 1 assumed)',volt:'5 V divider',current:'< 1 mA',power:0,pinStatus:'functional',generic:true,w:130,
+  pins:[P('A','R','therm','Sense'),P('B','R','gnd','Return')],note:'The firmware thermistor type must match the sensor.'},
+ fan:{type:'fan',name:'Part-cooling fan 12 V',mfr:'Generic',model:'Blower fan 12 V 0.2 A',volt:'12 V DC',current:'0.2 A',power:3,pinStatus:'functional',generic:true,w:140,
+  pins:[P('+','L','power','Supply +',{vmin:10,vmax:14}),P('-','L','heat','Switched return (to MOSFET)')],note:''}
+};
+Object.values(COMPONENTS).forEach((c,i)=>{c.id=Object.keys(COMPONENTS)[i];});
+
+/* ===== DATA LAYER 2: circuit projects (CircuitProjects + CircuitVariants + CircuitConnections) =====
+   Stored as plain data. The drawing engine builds every diagram from these records only.            */
+const WIRE={ // WiringColorRules: default display colours, not a mandatory wiring-colour code
+  power:{label:'Power +',color:'var(--w-pwr)',kind:'Power'}, gnd:{label:'Ground / return',color:'var(--w-gnd)',kind:'Power'},
+  v5:{label:'5 V logic',color:'var(--w-pwr)',kind:'Signal',dash:'6 3'},
+  step:{label:'STEP / pulse',color:'var(--w-step)',kind:'Signal'}, dir:{label:'DIR',color:'var(--w-dir)',kind:'Signal'},
+  en:{label:'ENABLE',color:'var(--w-en)',kind:'Signal'}, lim:{label:'Limit / endstop',color:'var(--w-lim)',kind:'Signal'},
+  spn:{label:'Spindle / switched load',color:'var(--w-spn)',kind:'Signal'}, fb:{label:'Feedback / alarm',color:'var(--w-fb)',kind:'Signal'},
+  mot:{label:'Motor coil',color:'var(--w-mot)',kind:'Power'}, usb:{label:'USB',color:'var(--w-usb)',kind:'Signal'},
+  therm:{label:'Thermistor',color:'var(--w-therm)',kind:'Signal'}, heat:{label:'Switched heater return',color:'var(--w-heat)',kind:'Power'}
+};
+const CIRCUITS={};
+function C(a,b,net,cls,o){return Object.assign({a,b,net,cls},o||{});}
+
+function buildEngraver(tier,cfg,size){
+  cfg=cfg||{};const pre=tier==='premium';
+  const drvM=pre?'cl57':(cfg.drv||(tier==='economy'?'drv8825':'dm542')),eco=drvM==='drv8825';
+  const motM=pre?'nema23cl':(cfg.mot||(eco?'nema17':'nema23'));
+  const I=[
+    {id:'psu',m:cfg.psu||(eco?'psu24':'psu24b'),label:'Power supply',x:20,y:30},
+    {id:'fuse',m:'fuse',label:'Main fuse',x:270,y:30},
+    {id:'estop',m:'estop',label:'Emergency stop',x:470,y:30},
+    {id:'pc',m:'pc',label:'Host PC',x:20,y:240},
+    {id:'ctl',m:'uno_cnc',label:'CNC controller',x:310,y:210},
+    {id:'dx',m:drvM,label:'X driver',x:660,y:30},{id:'dy',m:drvM,label:'Y driver',x:660,y:250},{id:'dz',m:drvM,label:'Z driver',x:660,y:470},
+    {id:'mx',m:motM,label:'X motor',x:960,y:30},{id:'my',m:motM,label:'Y motor',x:960,y:250},{id:'mz',m:motM,label:'Z motor',x:960,y:470},
+    {id:'lx',m:'lim',label:'X limit',x:20,y:520},{id:'ly',m:'lim',label:'Y limit',x:20,y:630},{id:'lz',m:'lim',label:'Z limit',x:20,y:740},
+    {id:'mos',m:'mosfet',label:'Spindle switch',x:660,y:690},{id:'spn',m:'spindle',label:'Spindle',x:960,y:690}
+  ];
+  const K=[
+    C('psu.+V','fuse.IN','+24V','power'),C('fuse.OUT','estop.NC_A','+24V','power'),
+    C('estop.NC_B','ctl.VMOT_IN','+24V_SW','power',{nl:1}),C('psu.-V','ctl.GND_PWR','0V','gnd',{nl:1}),
+    C('pc.USB','ctl.USB','USB','usb')
+  ];
+  ['x','y','z'].forEach((ax,i)=>{
+    const d='d'+ax,m='m'+ax,l='l'+ax,AX=ax.toUpperCase();
+    if(eco){
+      K.push(C(`ctl.${AX}_STEP`,`${d}.STEP`,`${AX}_STEP`,'step'),C(`ctl.${AX}_DIR`,`${d}.DIR`,`${AX}_DIR`,'dir'),C('ctl.EN',`${d}.EN`,'EN_N','en'));
+      K.push(C(`${d}.VMOT`,'estop.NC_B','+24V_SW','power',{nl:1}),C(`${d}.GND`,'psu.-V','0V','gnd',{nl:1}));
+      K.push(C(`${d}.A1`,`${m}.A+`,`${AX}_A+`,'mot'),C(`${d}.A2`,`${m}.A-`,`${AX}_A-`,'mot'),C(`${d}.B1`,`${m}.B+`,`${AX}_B+`,'mot'),C(`${d}.B2`,`${m}.B-`,`${AX}_B-`,'mot'));
+    }else{
+      K.push(C(`ctl.${AX}_STEP`,`${d}.PUL-`,`${AX}_STEP`,'step'),C(`ctl.${AX}_DIR`,`${d}.DIR-`,`${AX}_DIR`,'dir'));
+      K.push(C('ctl.+5V',`${d}.PUL+`,'+5V','v5',{nl:1}),C('ctl.+5V',`${d}.DIR+`,'+5V','v5',{nl:1}));
+      K.push(C(`${d}.+VDC`,'estop.NC_B','+24V_SW','power',{nl:1}),C(`${d}.GND`,'psu.-V','0V','gnd',{nl:1}));
+      K.push(C(`${d}.A+`,`${m}.A+`,`${AX}_A+`,'mot'),C(`${d}.A-`,`${m}.A-`,`${AX}_A-`,'mot'),C(`${d}.B+`,`${m}.B+`,`${AX}_B+`,'mot'),C(`${d}.B-`,`${m}.B-`,`${AX}_B-`,'mot'));
+    }
+    K.push(C(`${l}.NO`,`ctl.${AX}_LIM`,`${AX}_LIM`,'lim'),C(`${l}.COM`,'ctl.GND','GND','gnd',{nl:1}));
+  });
+  K.push(C('ctl.SPN_PWM','mos.PWM','SPN_PWM','spn'),C('ctl.GND_S','mos.GND_S','GND','gnd',{nl:1}),
+         C('estop.NC_B','mos.VIN+','+24V_SW','power',{nl:1}),C('psu.-V','mos.VIN-','0V','gnd',{nl:1}),
+         C('mos.OUT+','spn.+','SPN+','spn'),C('mos.OUT-','spn.-','SPN-','spn'));
+  const base={cat:'engraver',size:size||'60 × 60 cm',tier,
+    machine:'CNC engraving / drilling machine, 600 × 600 mm work area, 3 axes (X, Y, Z) driven by lead screws or belts, light DC spindle.',
+    assumptions:['Light-duty engraving in wood, plastics and soft aluminium; low cutting forces.',
+      'Motor and spindle values are assumptions for a typical 60 × 60 build. Real mechanics (screw pitch, moving mass, spindle) decide the final motor, current and supply sizing.',
+      'Mains-side wiring (inlet, switch, earth) is not drawn.','Spindle enable (D13) is not used. The spindle is switched only by PWM.'],
+    refs:[{t:'GRBL 1.1 default pin map (gnea/grbl)',u:SRC.grbl},{t:'Texas Instruments DRV8825',u:SRC.drv8825},{t:'Leadshine DM542',u:SRC.dm542}],
+    fw:{firmware:'GRBL 1.1 (ATmega328P)',settings:{'$100/$101/$102':'steps per mm = motor steps/rev × microstepping ÷ mm per rev. Depends on the mechanics, set it yourself.',
+      '$5':'limit pin invert: set to match NO or NC switches','$21':'hard limits 1 once switches are tested','$32':'laser mode 0 for a spindle'}},
+    instances:I,conns:K};
+  if(eco)Object.assign(base,{title:'Economy: UNO + CNC Shield + DRV8825 + NEMA 17',
+    basis:'A 600 mm light engraver needs low torque. A 24 V rail lets a DRV8825 keep current at speed, and plug-in drivers keep cost and parts count low. DRV8825 limit is 2.5 A with cooling, the assumed NEMA 17 is 1.5 A, so the driver has margin.',
+    differs:'Plug-in drivers on the shield, NEMA 17 motors, 240 W supply. Lowest cost, least headroom for faster moves or heavier cuts.'});
+  else if(!pre)Object.assign(base,{title:'Balanced: UNO + CNC Shield signals + DM542 + NEMA 23',
+    basis:'External DM542 drivers take 20–50 V and up to 4.2 A, so NEMA 23 motors give more torque for stiffer 600 mm frames and heavier cuts. The shield provides only STEP/DIR (5 V, common-anode wiring); the 24 V supply grows to 360 W. A DM542 sits at the lower end of its voltage range on 24 V, so top speed is limited.',
+    differs:'External opto-isolated drivers, NEMA 23, 360 W supply. ENABLE is not wired (3 × opto inputs exceed what one Arduino pin should sink), so the drivers stay enabled.'});
+  else Object.assign(base,{title:'Premium: closed-loop stepper drivers (model to confirm)',
+    basis:'Closed-loop steppers detect lost steps, so they suit faster or heavier machines. The exact driver and motor pair has not been chosen, so this sheet shows only the structure. Wiring is drawn from placeholder pin names and is not exact.',
+    differs:'Closed-loop drivers and motors with encoders. Encoder and alarm wiring are missing until the model is confirmed.',
+    todo:['Choose the exact closed-loop driver + motor pair and add its datasheet.','Add encoder cable pinout and the alarm (ALM) input wiring.','Re-check supply voltage and current for the chosen pair.']});
+  return base;
+}
+
+function buildPrinter(){
+  const I=[
+    {id:'psu',m:'psu12',label:'Power supply',x:20,y:30},
+    {id:'fuse',m:'fuse',label:'Main fuse',x:270,y:30,over:{model:'Blade fuse 30 A',current:'30 A',volt:'≤ 32 V'}},
+    {id:'pc',m:'pc',label:'Host PC',x:20,y:250},
+    {id:'ctl',m:'mega_ramps',label:'Printer controller',x:340,y:190},
+    {id:'dx',m:'a4988',label:'X driver',x:700,y:30},{id:'dy',m:'a4988',label:'Y driver',x:700,y:210},{id:'dz',m:'a4988',label:'Z driver',x:700,y:390},{id:'de',m:'a4988',label:'Extruder driver',x:700,y:570},
+    {id:'mx',m:'nema17p',label:'X motor',x:980,y:30},{id:'my',m:'nema17p',label:'Y motor',x:980,y:210},{id:'mz',m:'nema17p',label:'Z motor',x:980,y:390},{id:'me',m:'nema17p',label:'Extruder motor',x:980,y:570},
+    {id:'ex',m:'lim',label:'X endstop',x:20,y:580},{id:'ey',m:'lim',label:'Y endstop',x:20,y:690},{id:'ez',m:'lim',label:'Z endstop',x:20,y:800},
+    {id:'th0',m:'thermistor',label:'Hotend thermistor',x:20,y:910},{id:'th1',m:'thermistor',label:'Bed thermistor',x:20,y:1020},
+    {id:'hot',m:'hotend',label:'Hotend heater',x:700,y:770},{id:'bed',m:'bed',label:'Heated bed',x:700,y:850},{id:'fan',m:'fan',label:'Part-cooling fan',x:700,y:930}
+  ];
+  const K=[C('psu.+V','fuse.IN','+12V','power'),C('fuse.OUT','ctl.PWR_MAIN+','+12V','power',{nl:1}),C('fuse.OUT','ctl.PWR_BED+','+12V','power',{nl:1}),
+    C('psu.-V','ctl.PWR_MAIN-','0V','gnd',{nl:1}),C('psu.-V','ctl.PWR_BED-','0V','gnd',{nl:1}),C('pc.USB','ctl.USB','USB','usb')];
+  [['x','X'],['y','Y'],['z','Z'],['e','E0']].forEach(([a,A])=>{
+    const d='d'+a,m='m'+a;
+    K.push(C(`ctl.${A}_STEP`,`${d}.STEP`,`${A}_STEP`,'step'),C(`ctl.${A}_DIR`,`${d}.DIR`,`${A}_DIR`,'dir'),C(`ctl.${A}_EN`,`${d}.EN`,`${A}_EN_N`,'en'),
+      C('ctl.VMOT',`${d}.VMOT`,'VMOT','power',{nl:1}),C('ctl.GND_S',`${d}.GND`,'GND','gnd',{nl:1}),
+      C(`${d}.1A`,`${m}.1A`,`${A}_1A`,'mot'),C(`${d}.1B`,`${m}.1B`,`${A}_1B`,'mot'),C(`${d}.2A`,`${m}.2A`,`${A}_2A`,'mot'),C(`${d}.2B`,`${m}.2B`,`${A}_2B`,'mot'));
+  });
+  [['ex','X_MIN'],['ey','Y_MIN'],['ez','Z_MIN']].forEach(([e,p])=>K.push(C(`${e}.NO`,`ctl.${p}`,p,'lim'),C(`${e}.COM`,'ctl.GND','GND','gnd',{nl:1})));
+  K.push(C('ctl.T0','th0.A','T0','therm'),C('th0.B','ctl.GND','GND','gnd',{nl:1}),C('ctl.T1','th1.A','T1','therm'),C('th1.B','ctl.GND','GND','gnd',{nl:1}),
+    C('fuse.OUT','hot.+','+12V','power',{nl:1}),C('ctl.D10_HOTEND','hot.-','D10_HOTEND','heat'),
+    C('fuse.OUT','bed.+','+12V','power',{nl:1}),C('ctl.D8_BED','bed.-','D8_BED','heat'),
+    C('fuse.OUT','fan.+','+12V','power',{nl:1}),C('ctl.D9_FAN','fan.-','D9_FAN','heat'));
+  return {cat:'printer',size:'220 × 220 × 250 mm',tier:'economy',title:'Economy: Mega 2560 + RAMPS 1.4 + A4988 (Cartesian, bed-slinger)',
+    machine:'Cartesian bed-slinger FDM printer, 220 × 220 × 250 mm build volume, single extruder, 12 V.',
+    assumptions:['12 V system. Heated bed assumed 12 V / 120 W (≈ 10 A), hotend 12 V / 40 W. Real parts may differ.',
+      'Stepper currents on the main (5 A) RAMPS input are estimates; measure on the real machine.','Mains-side wiring is not drawn.'],
+    basis:'RAMPS 1.4 on a Mega 2560 is a documented, widely used reference design with a public pin map (Marlin). A4988 drivers are enough for NEMA 17 motors at about 1.2 A. A 12 V / 360 W supply covers the heater loads with margin.',
+    differs:'Only the Economy configuration is stored. Balanced and Premium printer configurations are planned.',
+    refs:[{t:'Marlin RAMPS pin map',u:SRC.marlinRamps},{t:'Allegro A4988',u:SRC.a4988}],
+    omitted:['LCD display','Auto-bed-level probe','Second Z motor','Part fan shroud and hotend fan wiring','Firmware thermal-runaway settings are not part of the wiring and must be enabled in Marlin (THERMAL_PROTECTION_*).'],
+    fw:{firmware:'Marlin 2.x, board RAMPS 1.4 (EFB)',settings:{'MOTHERBOARD':'BOARD_RAMPS_14_EFB','THERMAL_PROTECTION_HOTENDS / BED':'enabled','TEMP_SENSOR_0 / TEMP_SENSOR_BED':'1 (100k NTC), match your sensors','X/Y/Z_MIN_ENDSTOP_INVERTING':'set to match NO or NC switches'}},
+    instances:I,conns:K};
+}
+function reg(c){c.id=`${c.cat}|${c.size}|${c.tier}`;CIRCUITS[c.id]=c;}
+['economy','balanced','premium'].forEach(t=>reg(buildEngraver(t)));
+reg(buildPrinter());
+
+/* ===== DATA LAYER 4: more components + the remaining priority projects ===== */
+const psuM=(id,v,a,w)=>{COMPONENTS[id]=Object.assign({},COMPONENTS.psu24,{id,name:`DC power supply ${v} V / ${a} A`,model:`${v}V ${a}A ${w}W`,volt:v+' V DC',current:a+' A',power:w,rail:{v}});
+  COMPONENTS[id].pins=COMPONENTS[id].pins.map(p=>p.id==='+V'?Object.assign({},p,{desc:v+' V DC output +',v}):p);};
+psuM('psu24c',24,20,480);psuM('psu24x',24,25,600);psuM('psu24xl',24,40,1000);psuM('psu12s',12,10,120);
+COMPONENTS.nema23h={...COMPONENTS.nema23,id:'nema23h',name:'NEMA 23 bipolar stepper (high torque)',mfr:'Generic (assumed 3.0 A class)',model:'NEMA23 3.0 A/phase, about 2 N·m',current:'3.0 A/phase',power:70,imax:3.0};
+const gen=(o)=>Object.assign({mfr:'Generic',pinStatus:'functional',generic:true,power:0,w:170},o);
+Object.assign(COMPONENTS,{
+ tmc2209:{id:'tmc2209',type:'driver',name:'Stepper driver module (plug-in, StepStick format)',mfr:'Trinamic chip, SilentStepStick-style module',model:'TMC2209 (STEP/DIR mode)',volt:'4.75–29 V motor supply',current:'2.0 A RMS / 2.8 A peak',power:1,imax:2.0,pinStatus:'functional',
+  src:'https://www.trinamic.com/products/integrated-circuits/details/tmc2209-la/',w:176,
+  pins:[P('EN','L','en','Enable (active low)'),P('STEP','L','step','Step input'),P('DIR','L','dir','Direction input'),P('VIO','L','v5','Logic supply 3–5 V',{vmin:3,vmax:5.5}),
+        P('VM','R','power','Motor supply 4.75–29 V',{vmin:4.75,vmax:29}),P('GND','R','gnd','Power ground'),
+        P('M1A','R','mot','Coil 1 output'),P('M1B','R','mot','Coil 1 output'),P('M2A','R','mot','Coil 2 output'),P('M2B','R','mot','Coil 2 output')],
+  note:'Used in standalone STEP/DIR mode. UART, CLK, MS1/MS2 and diagnostic pins are not drawn. Module pinouts vary a little by maker, so check that your module matches RAMPS before inserting it. Pins are drawn by function.'},
+ bed24_300:gen({id:'bed24_300',type:'heater',name:'Heated bed (silicone pad)',model:'Silicone heater 24 V 300 W',volt:'24 V DC',current:'12.5 A',power:300,w:150,
+  pins:[P('+','L','power','Supply +',{vmin:20,vmax:28}),P('-','L','heat','Switched return (to external switch)')],note:'Switch through an external MOSFET or SSR rated above the bed current. Use thick wire.'}),
+ bed24_500:gen({id:'bed24_500',type:'heater',name:'Heated bed (silicone pad)',model:'Silicone heater 24 V 500 W',volt:'24 V DC',current:'20.8 A',power:500,w:150,
+  pins:[P('+','L','power','Supply +',{vmin:20,vmax:28}),P('-','L','heat','Switched return (to external switch)')],note:'Needs a separate fused branch, thick wire and an external switch rated above 20.8 A.'}),
+ hotend24:gen({id:'hotend24',type:'heater',name:'Hotend heater cartridge',model:'Cartridge 24 V 40 W',volt:'24 V DC',current:'1.7 A',power:40,w:150,
+  pins:[P('+','L','power','Supply +',{vmin:20,vmax:28}),P('-','L','heat','Switched return (to MOSFET)')],note:'Pair with firmware thermal-runaway protection.'}),
+ fan24:gen({id:'fan24',type:'fan',name:'Part-cooling fan 24 V',model:'Blower fan 24 V 0.15 A',volt:'24 V DC',current:'0.15 A',power:4,w:140,
+  pins:[P('+','L','power','Supply +',{vmin:20,vmax:28}),P('-','L','heat','Switched return (to MOSFET)')],note:''}),
+ bedsw:gen({id:'bedsw',type:'mosfet',name:'External bed switch (low-side MOSFET board)',model:'Generic bed MOSFET board, 36 V / 30 A (assumed)',volt:'up to 36 V',current:'30 A',power:0,w:190,
+  pins:[P('T+','L','power','Trigger input + (from the controller’s bed output)',{vmin:5,vmax:36}),P('T-','L','heat','Trigger input − (low-side bed output)'),
+        P('HV+','R','power','Load supply +',{vmin:5,vmax:36}),P('HV-','R','gnd','Load supply return'),P('OUT-','R','heat','Switched return to the bed')],
+  note:'Boards differ. Pick one whose trigger accepts the controller’s bed output and whose rating is above the bed current. Pin names here are generic.'}),
+ pwm010:gen({id:'pwm010',type:'mosfet',name:'PWM to 0–10 V converter',model:'PWM → 0–10 V analog module (model to confirm)',volt:'12–30 V supply',current:'< 0.1 A',pinStatus:'unverified',w:176,generic:false,
+  pins:[P('PWM','L','spn','PWM signal in (5 V)'),P('GND_S','L','gnd','Signal ground'),P('V+','L','power','Module supply +',{vmin:12,vmax:30}),P('V-','L','gnd','Module supply −'),
+        P('AO','R','spn','0–10 V analog out'),P('AGND','R','gnd','Analog ground')],
+  note:'Pin names are placeholders. Choose a specific module and add its datasheet.'}),
+ relay:gen({id:'relay',type:'mosfet',name:'Spindle run relay module',model:'1-channel 5 V relay module (assumed)',volt:'5 V coil',current:'10 A contacts',power:2,w:176,
+  pins:[P('IN','L','spn','Control input (5 V logic)'),P('GND_S','L','gnd','Signal ground'),P('VCC','L','v5','Coil supply 5 V',{vmin:4.5,vmax:5.5}),
+        P('COM','R','spn','Contact common'),P('NO','R','spn','Normally-open contact')],
+  note:'Used only as a dry contact into the VFD run input. Confirm the module’s input polarity.'}),
+ vfd:{id:'vfd',type:'driver',name:'Spindle VFD',mfr:'Not confirmed',model:'VFD for 1.5 kW spindle (model to confirm)',volt:'mains-powered',current:'unconfirmed',power:0,pinStatus:'unverified',w:176,optional:['L1','L2','PE_IN'],
+  pins:[P('L1','L','pwr','Mains in (not drawn)'),P('L2','L','pwr','Mains in (not drawn)'),P('PE_IN','L','gnd','Earth (not drawn)'),
+        P('FWD','L','spn','Run forward input (unconfirmed)'),P('DCM','L','spn','Digital common (unconfirmed)'),P('AVI','L','spn','0–10 V speed input (unconfirmed)'),P('ACM','L','gnd','Analog common (unconfirmed)'),
+        P('U','R','mot','Motor phase U'),P('V','R','mot','Motor phase V'),P('W','R','mot','Motor phase W'),P('PE_OUT','R','gnd','Motor earth')],
+  note:'Every VFD names these terminals differently. This is a placeholder. Choose the exact VFD, then replace this model with its terminal table and parameter list.'},
+ acspindle:gen({id:'acspindle',type:'spindle',name:'AC spindle (inverter-duty)',model:'1.5 kW, 3-phase, 220 V (assumed)',volt:'3-phase from VFD',current:'about 7 A',power:0,w:150,
+  pins:[P('U','L','mot','Phase U'),P('V','L','mot','Phase V'),P('W','L','mot','Phase W'),P('PE','L','gnd','Earth')],note:'Match the spindle’s voltage and frequency to the VFD setup.'}),
+ interlock:gen({id:'interlock',type:'switch',name:'Door interlock switch (NC)',model:'Door interlock, 1 NC',volt:'≤ 30 V DC',current:'≥ 5 A',w:150,
+  pins:[P('NC_A','L','power','Contact A'),P('NC_B','R','power','Contact B')],note:'Opens the laser supply when the enclosure door opens. Test it every session.'}),
+ laser:{id:'laser',type:'spindle',name:'Diode laser module',mfr:'Not confirmed',model:'12 V diode laser module with TTL input (model to confirm)',volt:'12 V DC',current:'about 3 A',power:40,pinStatus:'unverified',w:176,
+  pins:[P('V+','L','power','Supply + (unconfirmed)',{vmin:10,vmax:14}),P('GND','L','gnd','Ground (unconfirmed)'),P('TTL','L','spn','PWM / TTL input (unconfirmed)')],
+  note:'Pin names and logic level are placeholders. Many modules differ. Confirm the exact module, its eyewear wavelength rating and its input levels before wiring.'}
+});
+Object.entries(COMPONENTS).forEach(([k,c])=>{c.id=k;});
+
+/* ----- helpers that edit a built circuit ----- */
+const rmI=(c,ids)=>{c.instances=c.instances.filter(i=>!ids.includes(i.id));c.conns=c.conns.filter(k=>!ids.some(id=>k.a.startsWith(id+'.')||k.b.startsWith(id+'.')));};
+const setI=(c,id,m,over)=>{const i=c.instances.find(x=>x.id===id);i.m=m;if(over)i.over=over;};
+const mvI=(c,id,x,y)=>{const i=c.instances.find(z=>z.id===id);i.x=x;i.y=y;};
+const sizeFix=(c,size)=>{c.machine=c.machine.replace('600 × 600 mm',size);c.assumptions=c.assumptions.map(a=>a.replace('60 × 60',size));};
+
+/* ----- Engravers 40, 80, 120 ----- */
+const ENG={
+ '40 × 40 cm':{economy:{drv:'drv8825',mot:'nema17',psu:'psu24'},balanced:{drv:'dm542',mot:'nema23',psu:'psu24b'},
+   t:{economy:['Economy: UNO + CNC Shield + DRV8825 + NEMA 17','A 400 mm light engraver needs little torque, so plug-in DRV8825 drivers (2.5 A max) with 1.5 A motors give margin at the lowest cost. A 24 V / 240 W supply covers three motors and a small spindle.','Plug-in drivers on the shield, NEMA 17 motors, 240 W supply.'],
+      balanced:['Balanced: UNO + CNC Shield signals + DM542 + NEMA 23','External DM542 drivers with NEMA 23 motors give more torque and thermal headroom than plug-in drivers, at the cost of lower top speed on 24 V.','External opto-isolated drivers, NEMA 23, 360 W supply. ENABLE is not wired.']}},
+ '80 × 80 cm':{economy:{drv:'dm542',mot:'nema23',psu:'psu24b'},balanced:{drv:'dm542',mot:'nema23h',psu:'psu24c'},
+   t:{economy:['Economy: UNO + CNC Shield signals + DM542 + NEMA 23','At 800 mm the axes are longer and heavier, so even the economy level uses external DM542 drivers and NEMA 23 motors. DRV8825 plug-ins would run near their limit.','Smallest system judged adequate for 800 mm: NEMA 23 (2.8 A), 360 W supply. ENABLE is not wired.'],
+      balanced:['Balanced: UNO + CNC Shield signals + DM542 + NEMA 23 high torque','Higher-torque NEMA 23 motors (3.0 A) stay below the DM542 4.2 A limit and give more margin on a heavier gantry. A 480 W supply keeps a 1.25× margin.','Higher-torque motors and a 480 W supply versus Economy.']}},
+ '120 × 120 cm':{economy:{drv:'dm542',mot:'nema23',psu:'psu24b'},balanced:{drv:'dm542',mot:'nema23h',psu:'psu24c'},
+   t:{economy:['Economy: UNO + CNC Shield signals + DM542 + NEMA 23','At 1200 mm the gantry mass and axis length make torque the main concern. NEMA 23 with DM542 is the smallest set judged adequate, and only for light engraving at moderate speed.','NEMA 23 (2.8 A), 360 W supply. A single Y motor is assumed, see assumptions.'],
+      balanced:['Balanced: UNO + CNC Shield signals + DM542 + NEMA 23 high torque','Higher-torque NEMA 23 motors and a 480 W supply for the heavier 1200 mm gantry.','Higher-torque motors and a 480 W supply versus Economy.']}}
+};
+const gantryNote='A single Y motor is assumed. On a 1200 mm gantry a dual-Y drive (two motors on one driver or two drivers cloned) is common and needs a larger supply. This is not drawn.';
+Object.entries(ENG).forEach(([size,cf])=>['economy','balanced'].forEach(t=>{
+  const c=buildEngraver(t,cf[t],size);sizeFix(c,size);const [ti,ba,df]=cf.t[t];c.title=ti;c.basis=ba;c.differs=df;
+  if(size==='120 × 120 cm')c.assumptions.push(gantryNote);reg(c);}));
+['40 × 40 cm','80 × 80 cm','120 × 120 cm'].forEach(size=>{const c=buildEngraver('premium',ENG[size].balanced,size);sizeFix(c,size);reg(c);});
+
+/* ----- Routers ----- */
+function toRouter(c,size,tier,cat,sp){
+  cat=cat||'router';sp=sp||'1.5 kW';c.cat=cat;c.size=size;c.id=null;
+  rmI(c,['mos','spn']);
+  c.instances.push({id:'pwmv',m:'pwm010',label:'PWM to 0–10 V',x:660,y:690},{id:'rly',m:'relay',label:'Spindle run relay',x:660,y:880},
+    {id:'vfd',m:'vfd',label:'Spindle VFD',x:960,y:690},{id:'spn',m:'acspindle',label:'Spindle (AC)',x:1260,y:690});
+  c.conns.push(C('ctl.SPN_PWM','pwmv.PWM','SPN_PWM','spn'),C('ctl.GND_S','pwmv.GND_S','GND','gnd',{nl:1}),
+    C('estop.NC_B','pwmv.V+','+24V_SW','power',{nl:1}),C('psu.-V','pwmv.V-','0V','gnd',{nl:1}),
+    C('pwmv.AO','vfd.AVI','SPN_0-10V','spn'),C('pwmv.AGND','vfd.ACM','SPN_AGND','gnd'),
+    C('ctl.SPN_EN','rly.IN','SPN_EN','spn'),C('ctl.GND_S','rly.GND_S','GND','gnd',{nl:1}),C('ctl.+5V','rly.VCC','+5V','v5',{nl:1}),
+    C('rly.COM','vfd.DCM','SPN_RUN_COM','spn'),C('rly.NO','vfd.FWD','SPN_RUN','spn'),
+    C('vfd.U','spn.U','SPN_U','mot'),C('vfd.V','spn.V','SPN_V','mot'),C('vfd.W','spn.W','SPN_W','mot'),C('vfd.PE_OUT','spn.PE','PE','gnd'));
+  c.machine=cat==='mill'?`CNC milling machine, ${size}, ${sp} spindle on a VFD (assumed).`:`CNC router, ${size} work area, 3 axes, ${sp} spindle on a VFD (spindle choice assumed).`;
+  c.instances.find(i=>i.id==='spn').over={model:`${sp}, 3-phase (assumed)`};
+  c.assumptions=c.assumptions.filter(a=>!/Spindle enable|Light-duty|Motor and spindle/.test(a));
+  c.assumptions.unshift((cat==='mill'?`Milling load class defined by the ${sp} spindle and axis loads. The spindle is an assumption.`:`Wood, acrylic and plastics routing with a ${sp} AC spindle on a VFD. The spindle is an assumption.`),'GRBL 1.1 drives the VFD speed through a PWM-to-0–10 V module (D11) and run through a relay (D13). VFD terminal names are placeholders.','Axis motors and supply are sized for moderate cutting loads. Mechanics decide the real values.');
+  c.todo=(c.todo||[]).concat(['Choose the exact VFD and spindle, then replace the placeholder VFD model with its terminal table and parameter list.','Choose the PWM-to-0–10 V module and add its datasheet.']);
+  c.refs=c.refs.concat([]);reg(c);}
+const RT={'40 × 40 cm':['psu24b','psu24c'],'60 × 60 cm':['psu24b','psu24c'],'60 × 90 cm':['psu24b','psu24c'],'120 × 120 cm':['psu24b','psu24c']};
+Object.entries(RT).forEach(([size])=>{
+  const e=buildEngraver('economy',{drv:'dm542',mot:'nema23',psu:'psu24b'},size);e.title='Economy: UNO + CNC Shield signals + DM542 + NEMA 23 + VFD spindle';
+  e.basis='A router cuts with higher side loads than an engraver, so the economy level already uses external DM542 drivers with NEMA 23 motors. The spindle runs on a VFD through a PWM-to-0–10 V module and a run relay.';e.differs='NEMA 23 (2.8 A), 360 W DC supply.';toRouter(e,size,'economy');
+  const b=buildEngraver('balanced',{drv:'dm542',mot:'nema23h',psu:'psu24c'},size);b.title='Balanced: UNO + CNC Shield signals + DM542 + NEMA 23 high torque + VFD spindle';
+  b.basis='Higher-torque NEMA 23 motors (3.0 A) stay below the DM542 limit and give more margin for cutting loads. 480 W DC supply keeps a 1.25× margin.';b.differs='Higher-torque motors and a 480 W supply versus Economy.';toRouter(b,size,'balanced');
+  const p=buildEngraver('premium',{psu:'psu24c'},size);p.title='Premium: closed-loop stepper drivers (model to confirm) + VFD spindle';toRouter(p,size,'premium');
+  if(size==='120 × 120 cm'){[e,b,p].forEach(x=>x.assumptions.push(gantryNote));}
+});
+
+/* ----- Diode laser ----- */
+function toLaser(c,size,title,basis,differs){
+  c.cat='laser';c.size=size;c.id=null;rmI(c,['mos','spn']);
+  c.instances.push({id:'psuL',m:'psu12',label:'Laser power supply',x:660,y:700},{id:'fuseL',m:'fuse',label:'Laser fuse',x:900,y:700,over:{model:'Blade fuse 5 A',current:'5 A'}},
+    {id:'estopL',m:'estop',label:'Emergency stop (laser pole)',x:900,y:790},{id:'dil',m:'interlock',label:'Door interlock',x:900,y:880},{id:'las',m:'laser',label:'Diode laser',x:1200,y:880});
+  c.conns.push(C('psuL.+V','fuseL.IN','+12V_L','power'),C('fuseL.OUT','estopL.NC_A','+12V_L','power',{nl:1}),C('estopL.NC_B','dil.NC_A','+12V_L_SW','power',{nl:1}),
+    C('dil.NC_B','las.V+','+12V_LASER','power'),C('psuL.-V','las.GND','0V_L','gnd',{nl:1}),C('ctl.SPN_PWM','las.TTL','LASER_PWM','spn'),C('ctl.GND_S','las.GND','GND','gnd',{nl:1}));
+  c.title=title;c.basis=basis;c.differs=differs;c.machine=`Open-frame diode laser engraver, GRBL laser mode. Class: ${size}.`;
+  c.assumptions=['Open-frame diode laser, low power. Not a Class 1 product: enclosure, eyewear and a keyed enable are required.','The laser has its own 12 V supply, separate from the motor supply. The two grounds are tied only through the TTL ground reference.',
+    'Motion values are assumptions for a light gantry. Mains-side wiring is not drawn.','The e-stop is shown as a second pole that opens the laser supply. A real dual-pole e-stop is needed.'];
+  c.todo=['Choose the exact laser module and add its datasheet (supply, TTL logic level, wavelength for eyewear).','Test the interlock and e-stop with the beam blocked before first use.'];
+  c.fw={firmware:'GRBL 1.1, laser mode',settings:{'$32':'1 (laser mode, PWM continues during moves)','$30':'maximum spindle speed, match the PWM range','$31':'0','Use M4':'dynamic laser power mode'}};reg(c);}
+{const c=buildEngraver('economy',{drv:'drv8825',mot:'nema17',psu:'psu24'},'Diode laser, desktop (about 40 × 40 cm)');
+ toLaser(c,'Diode laser, desktop (about 40 × 40 cm)','Economy: UNO + CNC Shield + DRV8825 + diode laser','A small desktop diode laser moves little mass, so plug-in DRV8825 drivers and NEMA 17 motors are enough. The laser has a separate supply with its own fuse, e-stop pole and door interlock.','Single laser configuration stored. The laser module is not confirmed, so the circuit is Incomplete.');}
+{const c=buildEngraver('economy',{drv:'dm542',mot:'nema23',psu:'psu24b'},'Diode laser, large bed (about 80 × 80 cm)');
+ toLaser(c,'Diode laser, large bed (about 80 × 80 cm)','Economy: UNO + CNC Shield signals + DM542 + diode laser','On an 800 mm bed the axes are long and the beam must stay at a steady speed, so the larger bed uses DM542 drivers with NEMA 23 motors. The laser has a separate supply with its own fuse, e-stop pole and door interlock.','Single laser configuration stored. The laser module is not confirmed, so the circuit is Incomplete.');}
+
+/* ----- 3D printers ----- */
+function twist(c,fn){c.conns=c.conns.map(k=>fn(k));}
+const TMAP={VMOT:'VM','1A':'M1A','1B':'M1B','2A':'M2A','2B':'M2B'};
+const mapEnd=e=>{const m=e.match(/^(d[xyze])\.(.+)$/);return m&&TMAP[m[2]]?m[1]+'.'+TMAP[m[2]]:e;};
+function printerVariant(size,tier,cfg){
+  const c=buildPrinter();c.size=size;c.tier=tier;c.id=null;c.machine=`Cartesian bed-slinger FDM printer, ${size} build volume, single extruder, ${cfg.v} V.`;
+  if(tier==='balanced'){['dx','dy','dz','de'].forEach(d=>setI(c,d,'tmc2209'));
+    c.conns=c.conns.map(k=>Object.assign({},k,{a:mapEnd(k.a),b:mapEnd(k.b)}));
+    ['dx','dy','dz','de'].forEach(d=>c.conns.push(C('ctl.+5V',d+'.VIO','+5V','v5',{nl:1})));
+    c.title=`Balanced: Mega 2560 + RAMPS 1.4 + TMC2209 (${cfg.v} V, Cartesian bed-slinger)`;
+    c.basis=`${cfg.basis} TMC2209 drivers in standalone STEP/DIR mode are quieter than A4988 and reach 2.0 A RMS, so they run the same NEMA 17 motors with margin.`;
+    c.differs='TMC2209 drivers instead of A4988. Wiring of the rest is the same as Economy.';c.refs=c.refs.concat([{t:'Trinamic TMC2209',u:COMPONENTS.tmc2209.src}]);
+  }else{c.title=`Economy: Mega 2560 + RAMPS 1.4 + A4988 (${cfg.v} V, Cartesian bed-slinger)`;c.basis=`${cfg.basis} A4988 drivers are enough for NEMA 17 motors at about 1.2 A.`;c.differs='Lowest-cost drivers.';}
+  if(cfg.v===24){
+    setI(c,'psu',cfg.psu);setI(c,'fuse','fuse',{model:cfg.fuse>40?`Mega fuse ${cfg.fuse} A`:`Blade fuse ${cfg.fuse} A`,current:cfg.fuse+' A',volt:'≤ 32 V'});setI(c,'hot','hotend24');setI(c,'fan','fan24');setI(c,'bed',cfg.bed);
+    c.instances.push({id:'fuseC',m:'fuse',label:'Controller fuse',x:150,y:150,over:{model:'Blade fuse 5 A',current:'5 A'}});
+    c.conns=c.conns.filter(k=>!(k.a==='fuse.OUT'&&k.b==='ctl.PWR_MAIN+')&&!(k.a==='fuse.OUT'&&k.b==='ctl.PWR_BED+')&&!(k.a==='psu.-V'&&k.b==='ctl.PWR_BED-')&&!(k.a==='ctl.D8_BED'));
+    c.conns.push(C('fuse.OUT','fuseC.IN','+24V','power',{nl:1}),C('fuseC.OUT','ctl.PWR_MAIN+','+24V_CTL','power',{nl:1}));
+    c.instances.push({id:'bsw',m:'bedsw',label:'External bed switch',x:340,y:830});
+    c.conns=c.conns.filter(k=>!(k.b==='bed.-'));
+    c.conns.push(C('ctl.D8_BED','bsw.T-','D8_BED','heat'),C('fuse.OUT','bsw.T+','+24V','power',{nl:1}),C('fuse.OUT','bsw.HV+','+24V','power',{nl:1}),C('psu.-V','bsw.HV-','0V','gnd',{nl:1}),C('bsw.OUT-','bed.-','BED_RET','heat'));
+    c.conns.forEach(k=>{if(k.net==='+12V')k.net='+24V';});
+    mvI(c,'th0',20,910);mvI(c,'th1',20,1020);mvI(c,'bed',700,850);
+    c.assumptions=[`${cfg.v} V system. Heated bed assumed ${cfg.bedTxt}, hotend 24 V / 40 W, fan 24 V. Real parts may differ.`,'RAMPS 1.4 is run at 24 V here. Use 24 V-rated fans and heaters, check the board notes, and fit the 5 A controller fuse shown.','Bed power is switched by an external MOSFET board because the bed current is above the RAMPS 11 A input. The bed supply branch needs thick wire and its own fuse.','Mains-side wiring is not drawn.'];
+    c.omitted=['LCD display','Auto-bed-level probe','Second Z motor (common above 300 mm)','Hotend fan wiring','Firmware thermal-runaway settings are not part of the wiring and must be enabled in Marlin (THERMAL_PROTECTION_*).'];
+  }
+  if(cfg.bswOver)c.instances.find(i=>i.id==='bsw').over=cfg.bswOver;
+  reg(c);}
+const PR={'220 × 220 × 250 mm':{v:12,basis:'RAMPS 1.4 on a Mega 2560 is a documented, widely used design with a public pin map. A 12 V / 360 W supply covers the 120 W bed and 40 W hotend with margin.'},
+ '300 × 300 × 300 mm':{v:24,psu:'psu24x',fuse:25,bed:'bed24_300',bedTxt:'24 V / 300 W (≈ 12.5 A)',basis:'A 300 mm bed needs about 300 W, which is too much current for 12 V on RAMPS. A 24 V / 600 W supply, an external bed switch and a separate 5 A fuse for the controller handle it.'},
+ '400 × 400 × 400 mm':{v:24,psu:'psu24xl',fuse:30,bed:'bed24_500',bedTxt:'24 V / 500 W (≈ 20.8 A)',basis:'A 400 mm bed needs about 500 W. A 24 V / 1000 W supply, an external bed switch rated above 21 A and a separate 5 A controller fuse handle it. A 400 mm printer normally has dual Z motors, which is not drawn.'}};
+Object.entries(PR).forEach(([size,cfg])=>['economy','balanced'].forEach(t=>{if(size==='220 × 220 × 250 mm'&&t==='economy'){delete CIRCUITS['printer|220 × 220 × 250 mm|economy'];}printerVariant(size,t,cfg);}));
+
+/* ===== DATA LAYER 5: remaining sizes, printers, milling classes, CO2 laser ===== */
+const psuX=(id,v,a,w)=>psuM(id,v,a,w);psuX('psu24xxl',24,62,1500);
+const htr=(id,w,a)=>{COMPONENTS[id]=Object.assign({},COMPONENTS.bed24_300,{id,model:`Silicone heater 24 V ${w} W`,current:a+' A',power:w});};
+htr('bed24_400',400,16.7);htr('bed24_800',800,33.3);
+Object.assign(COMPONENTS,{
+ co2psu:{id:'co2psu',type:'psu',name:'CO2 laser power supply',mfr:'Not confirmed',model:'CO2 tube PSU 40–60 W (model to confirm)',volt:'mains in, control 24 V / 5 V',current:'unconfirmed',power:30,pinStatus:'unverified',w:190,optional:['AC_L','AC_N','PE','HV'],
+  pins:[P('AC_L','L','pwr','Mains in (not drawn)'),P('AC_N','L','pwr','Mains in (not drawn)'),P('PE','L','gnd','Earth (not drawn)'),
+        P('24V','L','power','24 V control supply (unconfirmed)',{vmin:22,vmax:26}),P('GND','L','gnd','Control ground (unconfirmed)'),P('L','L','spn','Fire / PWM input, active low (unconfirmed)'),P('WP','L','spn','Water-protect input (unconfirmed)'),
+        P('HV','R','pwr','High-voltage output to the tube (not drawn)')],
+  note:'Placeholder. CO2 supplies output about 20 kV. Terminal names vary by maker, so choose the exact supply and add its manual. High-voltage wiring is not drawn.'},
+ flow:gen({id:'flow',type:'switch',name:'Water flow switch (NC)',model:'Flow switch, closes with flow (assumed)',volt:'≤ 30 V',current:'< 1 A',w:150,
+  pins:[P('A','L','spn','Contact A'),P('B','R','spn','Contact B')],note:'Opens the laser enable when coolant flow drops. Confirm polarity (NO or NC) before wiring.'}),
+ co2tube:{id:'co2tube',type:'spindle',name:'CO2 laser tube',mfr:'Not confirmed',model:'40–60 W glass tube (model to confirm)',volt:'high voltage from PSU',current:'unconfirmed',power:0,pinStatus:'unverified',w:140,optional:['ANODE','CATHODE'],
+  pins:[P('ANODE','L','pwr','High-voltage anode (not drawn)'),P('CATHODE','L','gnd','Cathode return (not drawn)')],note:'Needs water cooling and a rated enclosure. Not drawn beyond its connection to the supply.'}
+});
+Object.entries(COMPONENTS).forEach(([k,c])=>{c.id=k;});
+COMPONENTS.co2psu.thru=[];
+const sz=(w,h)=>`${w} × ${h} cm`;
+const fixTxt=(t,size)=>t.replace(/\b(400|800|1200) mm/g,size);
+
+/* ----- remaining engraver / router sizes ----- */
+const enGrp=s=>{const m=Math.max(...s.match(/\d+/g).slice(0,2).map(Number));return m<=60?'40 × 40 cm':m<=90?'80 × 80 cm':'120 × 120 cm';};
+const ENG_REST=[[20,20],[30,30],[50,50],[70,70],[90,90],[100,100],[110,110],[30,40],[40,60],[40,80],[60,90],[60,120],[80,120]].map(a=>sz(...a));
+ENG_REST.forEach(size=>{const g=enGrp(size),cf=ENG[g],small=Math.max(...size.match(/\d+/g).slice(0,2).map(Number))<=30;
+  ['economy','balanced'].forEach(t=>{const c=buildEngraver(t,cf[t],size);sizeFix(c,size);const [ti,ba,df]=cf.t[t];c.title=ti;c.basis=fixTxt(ba,size.replace(' cm','').replace(/ × /,' × ')+' cm');c.differs=df;
+    if(Math.max(...size.match(/\d+/g).slice(0,2).map(Number))>=100)c.assumptions.push(gantryNote);
+    if(/×.*×/.test(size)&&size.split(' × ')[0]!==size.split(' × ')[1].replace(' cm',''))c.assumptions.push('Rectangular work area: the long axis is assumed to carry the heavier motor load. Check the long axis separately.');reg(c);});
+  const p=buildEngraver('premium',cf.balanced,size);sizeFix(p,size);reg(p);});
+const RT_REST=[[30,30],[40,60],[60,120],[80,80],[100,100]].map(a=>sz(...a));
+RT_REST.forEach(size=>{
+  const e=buildEngraver('economy',{drv:'dm542',mot:'nema23',psu:'psu24b'},size);e.title='Economy: UNO + CNC Shield signals + DM542 + NEMA 23 + VFD spindle';
+  e.basis='A router cuts with higher side loads than an engraver, so the economy level already uses external DM542 drivers with NEMA 23 motors. The spindle runs on a VFD through a PWM-to-0–10 V module and a run relay.';e.differs='NEMA 23 (2.8 A), 360 W DC supply.';toRouter(e,size,'economy');
+  const b=buildEngraver('balanced',{drv:'dm542',mot:'nema23h',psu:'psu24c'},size);b.title='Balanced: UNO + CNC Shield signals + DM542 + NEMA 23 high torque + VFD spindle';
+  b.basis='Higher-torque NEMA 23 motors (3.0 A) stay below the DM542 limit and give more margin for cutting loads. 480 W DC supply keeps a 1.25× margin.';b.differs='Higher-torque motors and a 480 W supply versus Economy.';toRouter(b,size,'balanced');
+  const p=buildEngraver('premium',{psu:'psu24c'},size);p.title='Premium: closed-loop stepper drivers (model to confirm) + VFD spindle';toRouter(p,size,'premium');
+  if(Math.max(...size.match(/\d+/g).slice(0,2).map(Number))>=100)[e,b,p].forEach(x=>x.assumptions.push(gantryNote));});
+
+/* ----- milling classes (by spindle power and load) ----- */
+const MILL=[['Light class (small spindle, stepper axes)','0.8 kW',['economy','balanced','premium']],
+            ['Medium class (VFD spindle, closed-loop or servo axes)','2.2 kW',['balanced','premium']],
+            ['Heavy class (servo axes, industrial drives)','5.5 kW',['premium']]];
+MILL.forEach(([size,sp,tiers])=>tiers.forEach(t=>{
+  const cf=t==='economy'?{drv:'dm542',mot:'nema23',psu:'psu24b'}:t==='balanced'?{drv:'dm542',mot:'nema23h',psu:'psu24c'}:{psu:'psu24c'};
+  const c=buildEngraver(t,cf,size);
+  c.title=t==='premium'?'Premium: closed-loop or servo axes (model to confirm) + VFD spindle':(t==='economy'?'Economy: stepper axes + DM542 + VFD spindle':'Balanced: high-torque stepper axes + DM542 + VFD spindle');
+  c.basis=t==='premium'?`A ${sp} spindle and heavy cuts need axes that do not lose steps, so this class uses closed-loop steppers or servos. The exact pair is not chosen, so the sheet shows structure only.`:
+    `A ${sp} spindle gives moderate cutting forces. Stepper axes with DM542 drivers can handle light cuts in soft metals and wood, and the larger spindle is run from a VFD.`;
+  c.differs=t==='premium'?'Closed-loop or servo axes. Not stepper.':'Stepper axes. The class is limited to light cuts.';
+  toRouter(c,size,t,'mill',sp);
+  c.assumptions.push(`${size}: classified by spindle power (${sp}), not by size. Real cutting forces, spindle duty and rigidity decide whether stepper axes are adequate.`);
+  if(sp==='5.5 kW')c.assumptions.push('A 5.5 kW spindle needs a larger VFD, a mains contactor and a dedicated supply. Not drawn.');}));
+
+/* ----- CO2 laser ----- */
+{const c=buildEngraver('economy',{drv:'dm542',mot:'nema23',psu:'psu24b'},'CO2 laser, 40–60 W (about 50 × 30 cm)');
+ c.cat='laser';c.id=null;rmI(c,['mos','spn']);
+ c.instances.push({id:'lps',m:'co2psu',label:'CO2 laser PSU',x:660,y:700},{id:'tube',m:'co2tube',label:'CO2 tube',x:960,y:700},{id:'flow',m:'flow',label:'Water flow switch',x:660,y:900},
+   {id:'dil',m:'interlock',label:'Door interlock',x:660,y:990});
+ c.conns.push(C('estop.NC_B','lps.24V','+24V_SW','power',{nl:1}),C('psu.-V','lps.GND','0V','gnd',{nl:1}),C('ctl.SPN_PWM','lps.L','LASER_PWM','spn'),
+   C('ctl.GND_S','lps.GND','GND','gnd',{nl:1}),C('flow.B','lps.WP','FLOW_OK','spn'),C('flow.A','dil.NC_B','FLOW_IN','spn',{nl:1}),C('ctl.GND_S','dil.NC_A','GND','gnd',{nl:1}));
+ c.title='Economy: UNO + CNC Shield signals + DM542 + CO2 laser (placeholder PSU)';c.size='CO2 laser, 40–60 W (about 50 × 30 cm)';
+ c.basis='A 40–60 W CO2 tube needs a high-voltage supply, water cooling and a flow check. The motion side matches the large-bed diode laser. The laser supply and tube are placeholders because the exact model is not chosen.';
+ c.differs='Single configuration stored. Incomplete until the laser supply and tube are chosen.';
+ c.machine='CO2 laser engraver and cutter, 40–60 W, about 50 × 30 cm bed, GRBL laser mode (assumed).';
+ c.assumptions=['CO2 laser supply and tube are placeholders. High-voltage wiring is not drawn.','Water-flow protection and a door interlock gate the laser supply’s water-protect input. Both must be tested.','Mains wiring for the laser supply is not drawn. The e-stop shown opens only the DC side, so add a contactor for the laser PSU mains.','A CO2 beam is invisible and can burn. An enclosure rated for the tube power and eyewear for 10.6 µm are required.'];
+ c.todo=['Choose the exact CO2 supply and tube, then add their terminal tables.','Confirm the water-protect input polarity and the flow switch contact type.','Test interlock, flow loss and e-stop with the beam blocked before first use.'];
+ c.fw={firmware:'GRBL 1.1, laser mode',settings:{'$32':'1 (laser mode)','$30':'match the supply’s PWM range'}};reg(c);}
+
+/* ----- remaining printers ----- */
+Object.assign(PR,{
+ '180 × 180 × 180 mm':{v:12,basis:'A small 180 mm printer needs a small 12 V bed. The standard RAMPS 12 V design covers it with margin.'},
+ '250 × 250 × 250 mm':{v:12,basis:'A 250 mm bed at 12 V and about 120–150 W is within the RAMPS 11 A input. A 12 V / 360 W supply covers the loads.'},
+ '350 × 350 × 350 mm':{v:24,psu:'psu24xl',fuse:30,bed:'bed24_400',bedTxt:'24 V / 400 W (≈ 16.7 A)',basis:'A 350 mm bed needs about 400 W, so 24 V, a 1000 W supply, an external bed switch and a separate 5 A controller fuse are used.'},
+ '500 × 500 × 500 mm':{v:24,psu:'psu24xxl',fuse:80,bed:'bed24_800',bedTxt:'24 V / 800 W (≈ 33 A)',bswOver:{model:'Generic bed MOSFET/SSR board, 36 V / 60 A (assumed)',current:'60 A'},basis:'A 500 mm bed needs about 800 W. That is 33 A at 24 V, so a 1500 W supply, a heavy-duty external switch (SSR or MOSFET, rated 60 A) and thick wire are needed. A 500 mm printer normally has dual Z motors and a larger frame, which are not drawn.'}});
+['180 × 180 × 180 mm','250 × 250 × 250 mm','350 × 350 × 350 mm','500 × 500 × 500 mm'].forEach(size=>['economy','balanced'].forEach(t=>printerVariant(size,t,PR[size])));
+
+/* ===== ENGINE: geometry, vector drawing, validation ===== */
+COMPONENTS.fuse.thru=[['IN','OUT']];COMPONENTS.mega_ramps.thru=[['PWR_MAIN+','VMOT']];COMPONENTS.interlock.thru=[['NC_A','NC_B']]; COMPONENTS.estop.thru=[['NC_A','NC_B']]; COMPONENTS.mosfet.thru=[['VIN+','OUT+'],['VIN-','OUT-']];
+COMPONENTS.dm542.optional=['ENA+','ENA-']; COMPONENTS.cl57.optional=['ALM+','ALM-'];
+const HDR=36,ROW=18;
+const GLYPH={mcu:'M3 3h10v10H3z M1 6h2 M1 10h2 M13 6h2 M13 10h2 M6 1v2 M10 1v2 M6 13v2 M10 13v2',driver:'M2 3h12v10H2z M5 6h6v4H5z',
+ motor:'M8 2a6 6 0 1 0 .01 0z M5 10V6l3 3 3-3v4',psu:'M2 4h12v8H2z M5 9c1-3 2-3 3 0s2 3 3 0',fuse:'M1 8h3 M12 8h3 M4 5h8v6H4z M4 8h8',
+ estop:'M8 3a5 5 0 1 0 .01 0z M5 8h6',switch:'M2 12h4 M10 12h4 M6 12l6-6',mosfet:'M2 4h12v8H2z M5 8h2 M7 5v6 M9 5v6 M9 8h3',
+ spindle:'M3 6h6v4H3z M9 7h4v2H9z M13 8h2',heater:'M2 8h2l1-3 2 6 2-6 2 6 1-3h2',therm:'M6 2h4v7a3 3 0 1 1-4 0z',
+ fan:'M8 8m-1 0a1 1 0 1 0 2 0 M8 7C6 3 10 2 9 6 M9 8c4-2 5 2 1 2 M8 9c2 4-2 5-1 1 M7 8C3 10 2 6 6 7',pc:'M2 3h12v8H2z M6 14h4 M8 11v3'};
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+function model(inst){const m=COMPONENTS[inst.m];return inst.over?Object.assign({},m,inst.over):m;}
+function geom(c){ // positions of every pin, from stored data only
+  const G={};
+  c.instances.forEach(i=>{
+    const m=model(i),L=m.pins.filter(p=>p.side==='L'),R=m.pins.filter(p=>p.side==='R'),w=m.w||170,h=HDR+Math.max(L.length,R.length)*ROW+10,pins={};
+    L.forEach((p,k)=>pins[p.id]={x:i.x,y:i.y+HDR+k*ROW+ROW/2,side:'L',p});
+    R.forEach((p,k)=>pins[p.id]={x:i.x+w,y:i.y+HDR+k*ROW+ROW/2,side:'R',p});
+    G[i.id]={i,m,w,h,pins};
+  });
+  return G;
+}
+const split=s=>{const k=s.indexOf('.');return [s.slice(0,k),s.slice(k+1)];};
+const wireId=(k,n)=>'w'+n;
+function route(a,b,off){
+  const s=18,ax=a.x+(a.side==='R'?s:-s),bx=b.x+(b.side==='R'?s:-s);
+  let pts;
+  if(a.side==='R'&&b.side==='L'&&ax<bx){const m=(ax+bx)/2+off;pts=[[a.x,a.y],[m,a.y],[m,b.y],[b.x,b.y]];}
+  else if(a.side==='L'&&b.side==='R'&&ax>bx){const m=(ax+bx)/2+off;pts=[[a.x,a.y],[m,a.y],[m,b.y],[b.x,b.y]];}
+  else{const lx=a.side==='R'?Math.max(ax,bx)+10+off:Math.min(ax,bx)-10-off;pts=[[a.x,a.y],[lx,a.y],[lx,b.y],[b.x,b.y]];}
+  return pts;
+}
+/* returns {svg, bbox, ends} ; opts: sel, showPins, showNets, hide(Set of classes) */
+function drawCircuit(c,opts){
+  opts=opts||{};const G=geom(c),sel=opts.sel||null,hide=opts.hide||new Set(),ends=[];
+  let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
+  Object.values(G).forEach(g=>{x0=Math.min(x0,g.i.x);y0=Math.min(y0,g.i.y);x1=Math.max(x1,g.i.x+g.w);y1=Math.max(y1,g.i.y+g.h);});
+  const bbox={x:x0-70,y:y0-40,w:x1-x0+140,h:y1-y0+80};
+  const selComp=sel&&sel.type==='cmp'?sel.id:null,selWire=sel&&sel.type==='wire'?+sel.id:null;
+  const used={}; // pin usage for highlight
+  const pairCount={};let wires='',stubs='',arrows='';
+  const isRel=(k)=>{const [ai]=split(k.a),[bi]=split(k.b);return selComp&&(ai===selComp||bi===selComp);};
+  c.conns.forEach((k,n)=>{
+    const [ai,ap]=split(k.a),[bi,bp]=split(k.b);const A=G[ai].pins[ap],B=G[bi].pins[bp];
+    if(!A||!B){return;}
+    if(hide.has(k.cls))return;
+    const col=WIRE[k.cls].color,dash=(WIRE[k.cls].dash||'')+(((G[ai].m.pinStatus==='unverified')||(G[bi].m.pinStatus==='unverified'))?'4 4':'');
+    const rel=isRel(k)||selWire===n,dim=(selComp||selWire!==null)&&!rel;
+    const sw=rel?3.4:(WIRE[k.cls].kind==='Power'?2.6:1.8),op=dim?.14:1;
+    used[k.a]=1;used[k.b]=1;
+    if(k.nl){
+      const mk=(P,key)=>{const dir=P.side==='R'?1:-1,x2=P.x+dir*22;
+        ends.push([n,key,P.x,P.y]);
+        return `<path class="wire" data-w="${n}" d="M${P.x} ${P.y}H${x2}" stroke="${col}" stroke-width="${sw}" opacity="${op}" ${dash?`stroke-dasharray="${dash}"`:''}/>`+
+        `<text x="${x2+dir*4}" y="${P.y+3.5}" text-anchor="${dir>0?'start':'end'}" font-size="10" font-family="var(--mono)" fill="${col}" opacity="${op}" paint-order="stroke" stroke="var(--sheet)" stroke-width="3" data-w="${n}" class="wire" style="fill:${col}">${esc(k.net)}</text>`;};
+      stubs+=mk(A,'a')+mk(B,'b');return;
+    }
+    const key=ai+'>'+bi;pairCount[key]=(pairCount[key]||0)+1;const off=(pairCount[key]-1)*7-6;
+    const pts=route(A,B,off);ends.push([n,'a',pts[0][0],pts[0][1]],[n,'b',pts[3][0],pts[3][1]]);
+    const d='M'+pts.map(p=>p.join(' ')).join('L');
+    wires+=`<g opacity="${op}"><path class="wire" data-w="${n}" d="${d}" stroke="#0000" stroke-width="12"/>`+
+      `<path class="wire" data-w="${n}" d="${d}" stroke="${col}" stroke-width="${sw}" ${dash?`stroke-dasharray="${dash}"`:''}/></g>`;
+    if(['step','dir','en','spn','lim','therm','heat','fb'].includes(k.cls)||opts.showNets){
+      const mx=pts[1][0],my=(pts[1][1]+pts[2][1])/2; // label on the vertical run
+      if(opts.showNets)arrows+=`<text x="${mx+4}" y="${my}" font-size="9.5" font-family="var(--mono)" fill="${col}" opacity="${op}" paint-order="stroke" stroke="var(--sheet)" stroke-width="3">${esc(k.net)}</text>`;
+    }
+    if(['step','dir','en','spn'].includes(k.cls)){const q=B.side==='L'?1:-1;
+      arrows+=`<path d="M${B.x-q*9} ${B.y-4}L${B.x-1*q} ${B.y}L${B.x-q*9} ${B.y+4}z" fill="${col}" opacity="${op}"/>`;}
+  });
+  let nodes='';
+  Object.values(G).forEach(g=>{
+    const {i,m,w,h}=g,isSel=selComp===i.id,unv=m.pinStatus==='unverified';
+    const con=selComp===i.id?null:null;
+    nodes+=`<g class="cmp" data-c="${i.id}"><rect x="${i.x}" y="${i.y}" width="${w}" height="${h}" rx="5" fill="var(--panel)" stroke="${isSel?'var(--accent)':(unv?'var(--warn)':'var(--line)')}" stroke-width="${isSel?3:1.5}" ${unv?'stroke-dasharray="5 3"':''}/>`+
+     `<path d="M${i.x} ${i.y+HDR}V${i.y+5}a5 5 0 0 1 5-5H${i.x+w-5}a5 5 0 0 1 5 5V${i.y+HDR}z" fill="var(--bg)" stroke="none"/><line x1="${i.x}" x2="${i.x+w}" y1="${i.y+HDR}" y2="${i.y+HDR}" stroke="var(--line)"/>`+
+     `<svg x="${i.x+7}" y="${i.y+9}" width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="var(--accent)" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="${GLYPH[m.type]||GLYPH.mcu}"/></svg>`+
+     `<text x="${i.x+30}" y="${i.y+16}" font-size="12" font-weight="600" fill="var(--ink)">${esc(i.label)}</text>`+
+     `<text x="${i.x+30}" y="${i.y+29}" font-size="9.5" font-family="var(--mono)" fill="var(--muted)">${esc(m.model.length>w/6?m.model.slice(0,Math.floor(w/5.6))+'…':m.model)}</text>`+
+     (unv?`<text x="${i.x+w-6}" y="${i.y+13}" text-anchor="end" font-size="8.5" font-weight="600" fill="var(--warn)">PINS UNVERIFIED</text>`:'');
+    Object.values(g.pins).forEach(P=>{
+      const u=used[i.id+'.'+P.p.id];const col=WIRE[P.p.cls]?WIRE[P.p.cls].color:'var(--muted)';
+      nodes+=`<circle cx="${P.x}" cy="${P.y}" r="3.6" fill="${u?col:'var(--panel)'}" stroke="${col}" stroke-width="1.4"/>`;
+      if(opts.showPins!==false)nodes+=`<text x="${P.side==='L'?P.x+9:P.x-9}" y="${P.y+3.5}" text-anchor="${P.side==='L'?'start':'end'}" font-size="10" font-family="var(--mono)" fill="${u?'var(--ink)':'var(--muted)'}">${esc(P.p.id)}${P.p.arduino&&opts.showPins!==false&&w>=200?` <tspan fill="var(--muted)" font-size="8.5">${esc(P.p.arduino)}</tspan>`:''}</text>`;
+    });
+    nodes+='</g>';
+  });
+  return {inner:wires+stubs+arrows+nodes,bbox,ends,G};
+}
+function paletteLiteral(str,dark){
+  const L={'--panel':'#f6f8f9','--bg':'#e8edef','--ink':'#10222b','--muted':'#566b74','--line':'#c3cfd4','--accent':'#0a6f6b','--sheet':'#ffffff','--warn':'#a85a05',
+    '--w-pwr':'#d93a3f','--w-gnd':'#1b2a31','--w-step':'#1f9d57','--w-dir':'#2f6fe0','--w-en':'#12805a','--w-lim':'#c79300','--w-spn':'#e07a1a','--w-fb':'#7c4ddb','--w-mot':'#0e9aa0','--w-usb':'#6b7c85','--w-therm':'#b0489a','--w-heat':'#c7511f',
+    '--mono':'"IBM Plex Mono",Menlo,Consolas,monospace','--sans':'"IBM Plex Sans Arabic","Segoe UI",Arial,sans-serif'};
+  return str.replace(/var\((--[\w-]+)\)/g,(m,k)=>L[k]||'#000');
+}
+function exportSVG(c){
+  const d=drawCircuit(c,{showPins:true,showNets:true});const b=d.bbox,legend=Object.keys(WIRE).filter(k=>c.conns.some(x=>x.cls===k));
+  const lw=legend.length*170,lh=44,W=Math.max(b.w,lw+40),H=b.h+lh+60;
+  let s=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W*1.5}" height="${H*1.5}" font-family="var(--sans)">`+
+   `<rect width="100%" height="100%" fill="var(--sheet)"/><text x="20" y="26" font-size="16" font-weight="600" fill="var(--ink)">${esc(c.title)}</text>`+
+   `<text x="20" y="44" font-size="11" fill="var(--muted)">${esc(c.cat)} ${esc(c.size)} / ${esc(c.tier)}. Status: ${esc(validate(c).status)}. Preliminary data. Check datasheets before wiring.</text>`+
+   `<g transform="translate(${-b.x+ (W-b.w)/2} ${-b.y+56})">${d.inner}</g>`;
+  legend.forEach((k,i)=>{s+=`<line x1="${20+i*170}" x2="${44+i*170}" y1="${H-22}" y2="${H-22}" stroke="${WIRE[k].color}" stroke-width="3"/><text x="${50+i*170}" y="${H-18}" font-size="11" fill="var(--ink)">${esc(WIRE[k].label)}</text>`;});
+  return paletteLiteral(s+'</svg>');
+}
+
+/* ===== Circuit Diagram Validation Engine ===== */
+function validate(c){
+  const R=[];const add=(lvl,txt)=>R.push({lvl,txt});
+  const G=geom(c),ids=Object.fromEntries(c.instances.map(i=>[i.id,i]));
+  // 1. endpoints exist
+  let bad=0;c.conns.forEach(k=>{[k.a,k.b].forEach(e=>{const [i,p]=split(e);if(!ids[i]||!G[i].pins[p]){bad++;add('err',`Connection endpoint ${e} does not exist in the component model.`);}});});
+  if(!bad)add('ok',`All ${c.conns.length} connection endpoints exist in their component pin tables.`);
+  // 2. pin reuse + wire class
+  const use={};c.conns.forEach(k=>{[k.a,k.b].forEach(e=>{(use[e]=use[e]||[]).push(k);});});
+  let dup=0;Object.entries(use).forEach(([e,l])=>{const cls=l[0].cls;if(l.length>1&&!['power','gnd','v5','en','lim'].includes(cls)){dup++;add('err',`Pin ${e} is wired ${l.length} times (${cls}).`);}});
+  if(!dup)add('ok','No signal pin is wired to more than one destination.');
+  let mism=0;c.conns.forEach(k=>{const [ai,ap]=split(k.a),[bi,bp]=split(k.b);if(!G[ai]||!G[bi]||!G[ai].pins[ap]||!G[bi].pins[bp])return;
+    if(G[ai].pins[ap].p.cls!==k.cls&&G[bi].pins[bp].p.cls!==k.cls){mism++;add('warn',`Wire ${k.net} (${k.cls}) joins pins of other classes: ${k.a}, ${k.b}.`);}});
+  if(!mism)add('ok','Each wire class matches the function of at least one of its pins.');
+  // 3. nets + voltage
+  const par={};const f=x=>(par[x]===undefined?(par[x]=x):par[x]===x?x:(par[x]=f(par[x])));const un=(a,b)=>{par[f(a)]=f(b);};
+  c.conns.forEach(k=>un(k.a,k.b));
+  c.instances.forEach(i=>(model(i).thru||[]).forEach(([a,b])=>un(i.id+'.'+a,i.id+'.'+b)));
+  const netV={};c.instances.forEach(i=>{const m=model(i);m.pins.forEach(p=>{if(p.v)netV[f(i.id+'.'+p.id)]=p.v;});});
+  let vchk=0,vbad=0;c.instances.forEach(i=>model(i).pins.forEach(p=>{if(p.vmin===undefined)return;const v=netV[f(i.id+'.'+p.id)];
+    if(v===undefined)return;vchk++;if(v<p.vmin||v>p.vmax){vbad++;add('err',`${i.label} ${p.id}: supplied ${v} V, allowed ${p.vmin}–${p.vmax} V.`);}}));
+  if(vchk&&!vbad)add('ok',`${vchk} supply pins checked: every one is inside its documented voltage range.`);
+  // 4. motor-driver current
+  c.conns.filter(k=>k.cls==='mot').forEach(k=>{});
+  const pairs=new Set();c.conns.filter(k=>k.cls==='mot').forEach(k=>{const [ai]=split(k.a),[bi]=split(k.b);pairs.add(ai+'>'+bi);});
+  pairs.forEach(p=>{const [d,m]=p.split('>');const dm=model(ids[d]),mm=model(ids[m]);
+    if(dm.imax==null||mm.imax==null)add('warn',`${ids[d].label} → ${ids[m].label}: current rating not confirmed, cannot compare.`);
+    else if(mm.imax>dm.imax)add('err',`${ids[m].label} needs ${mm.imax} A but ${ids[d].label} supplies at most ${dm.imax} A.`);
+    else add('ok',`${ids[d].label} (${dm.imax} A max) can drive ${ids[m].label} (${mm.imax} A).`);});
+  // 5. psu capacity
+  const psus=c.instances.filter(i=>model(i).type==='psu');
+  if(psus.length){const load=c.instances.reduce((s,i)=>s+(model(i).type==='psu'?0:model(i).power||0),0),cap=psus.reduce((s,i)=>s+model(i).power,0),r=cap/load;
+    add(r>=1.25?'ok':(r>=1?'warn':'err'),`Estimated DC load ${load} W against ${cap} W of supply${psus.length>1?' ('+psus.length+' supplies combined)':''} (${r.toFixed(2)}× margin, 1.25× wanted). Load values are assumptions.`);}
+  // 6. protection
+  add(c.instances.some(i=>model(i).type==='fuse')?'ok':'err',c.instances.some(i=>model(i).type==='fuse')?'A main fuse is present.':'No main fuse in the circuit.');
+  if(c.cat==='engraver'||c.cat==='router'||c.cat==='mill'||c.cat==='laser')
+    add(c.instances.some(i=>model(i).type==='estop')?'ok':'err',c.instances.some(i=>model(i).type==='estop')?'An emergency stop opens the motor and spindle supply.':'No emergency stop in the circuit.');
+  if(c.cat==='laser'){const il=c.instances.some(i=>i.m==='interlock');add(il?'ok':'err',il?'A door interlock is in series with the laser supply.':'No door interlock on the laser supply.');
+    add('warn','Laser safety: the diode beam can blind and burn. Use an enclosure, rated eyewear and a keyed enable. Interlock and e-stop behaviour must be tested with the laser powered but the beam blocked. This sheet does not replace that test.');}
+  if(c.cat==='router')add('warn','The spindle VFD runs from mains. The e-stop shown opens only the DC side; add a contactor or VFD safe-stop input so the e-stop also stops the spindle.');
+  if(c.cat==='printer')add('warn','Thermal-runaway protection is a firmware setting and cannot be shown in the wiring. Enable it before heating.');
+  if(c.cat==='printer')add('warn','RAMPS 5 A input: hotend (≈3.3 A) + fan + four motors may exceed 5 A. Measure the real current. The bed (≈10 A) is close to the 11 A limit.');
+  // 7. unconnected pins on passive parts
+  let un0=0;c.instances.forEach(i=>{const m=model(i);if(['mcu','psu','pc'].includes(m.type))return;m.pins.forEach(p=>{if(!use[i.id+'.'+p.id]&&!(m.optional||[]).includes(p.id)){un0++;add('warn',`${i.label} pin ${p.id} is not connected.`);}});});
+  if(!un0)add('ok','Every required pin on drivers, motors, switches and loads is connected.');
+  // 8. pin data quality
+  const unv=c.instances.filter(i=>model(i).pinStatus==='unverified');
+  if(unv.length)add('err',`${unv.length} component(s) have unconfirmed pin names: ${[...new Set(unv.map(i=>model(i).model))].join(', ')}. The sheet is not an exact wiring diagram.`);
+  const gen=c.instances.filter(i=>model(i).generic);
+  if(gen.length)add('warn',`${gen.length} part(s) are generic assumptions (${[...new Set(gen.map(i=>i.label))].slice(0,6).join(', ')}…). Select real part numbers and re-check ratings.`);
+  (c.todo||[]).forEach(t=>add('err','Open item: '+t));
+  // 9. drawing vs table
+  const d=drawCircuit(c,{}),gg=d.G;let mis=0;d.ends.forEach(([n,key,x,y])=>{const k=c.conns[n],P=gg[split(key==='a'?k.a:k.b)[0]].pins[split(key==='a'?k.a:k.b)[1]];if(!P||Math.abs(P.x-x)>.01||Math.abs(P.y-y)>.01)mis++;});
+  add(mis?'err':'ok',mis?`${mis} wire ends in the drawing do not land on their pin.`:`Drawing check: all ${d.ends.length} wire ends land exactly on the pins named in the connection table.`);
+  // status
+  const errs=R.filter(r=>r.lvl==='err').length,warns=R.filter(r=>r.lvl==='warn').length;
+  const status=errs?'Incomplete':'Preliminary';
+  const why=errs?`${errs} blocking issue(s) found.`:`Automatic checks pass${warns?` with ${warns} warning(s)`:''}. "Verified" needs a person to compare every pin with the cited datasheets, and no such review is recorded.`;
+  return {status,why,items:R,errs,warns,mis};
+}
+
+/* ===== DATA LAYER 3: catalog (MachineCategories + MachineSizes) ===== */
+const IC={drill:'M12 3v10m-3-3 3 3 3-3M5 21h14M8 17h8',router:'M4 19h16M7 19V9l5-5 5 5v10M10 13h4',mill:'M6 4h12v4H6zM12 8v9m-3 0h6l-3 4z',
+  laser:'M3 12h12m2-4 4 4-4 4M6 6l2 2M6 18l2-2',printer:'M6 9V3h12v6M6 17H4v-6h16v6h-2M7 14h10v7H7z',ctl:'M5 5h14v14H5zM9 9h6v6H9zM2 9h3M2 15h3M19 9h3M19 15h3',
+  motor:'M12 3a9 9 0 1 0 .01 0zM8 15V9l4 4 4-4v6',saved:'M6 3h12v18l-6-4-6 4z'};
+const icon=k=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="${IC[k]}"/></svg>`;
+const sq=(a,b)=>`${a} × ${b} cm`;
+const CATS=[
+ {id:'engraver',name:'CNC Drilling & Engraving',ar:'ماكينات الحفر والنقش',icon:'drill',kind:'size',
+  desc:'Square and rectangular engraver sizes from 20 × 20 to 120 × 120 cm.',
+  sizes:[[20,20],[30,30],[40,40],[50,50],[60,60],[70,70],[80,80],[90,90],[100,100],[110,110],[120,120],[30,40],[40,60],[40,80],[60,90],[60,120],[80,120]].map(s=>sq(...s))},
+ {id:'router',name:'CNC Router',ar:'ماكينات الراوتر',icon:'router',kind:'size',desc:'Wood, acrylic and plastics routers.',
+  sizes:[[30,30],[40,40],[40,60],[60,60],[60,90],[60,120],[80,80],[100,100],[120,120]].map(s=>sq(...s))},
+ {id:'mill',name:'CNC Milling',ar:'ماكينات التفريز',icon:'mill',kind:'size',desc:'Classified by spindle power and axis load, not size alone.',
+  sizes:['Light class (small spindle, stepper axes)','Medium class (VFD spindle, closed-loop or servo axes)','Heavy class (servo axes, industrial drives)']},
+ {id:'laser',name:'Laser Engraving & Cutting',ar:'الليزر نقش وقطع',icon:'laser',kind:'size',desc:'Diode and CO2 classes. No laser circuit is shown as ready without interlocks.',
+  sizes:['Diode laser, desktop (about 40 × 40 cm)','Diode laser, large bed (about 80 × 80 cm)','CO2 laser, 40–60 W (about 50 × 30 cm)']},
+ {id:'printer',name:'3D Printers',ar:'الطابعات ثلاثية الأبعاد',icon:'printer',kind:'size',desc:'Cartesian, CoreXY, bed-slinger, delta and multi-extruder.',
+  sizes:['180 × 180 × 180 mm','220 × 220 × 250 mm','250 × 250 × 250 mm','300 × 300 × 300 mm','350 × 350 × 350 mm','400 × 400 × 400 mm','500 × 500 × 500 mm'],
+  types:['Cartesian','CoreXY','Bed-slinger','Delta','Multi-extruder']},
+ {id:'controllers',name:'CNC Controllers & Electronics',ar:'المتحكمات والإلكترونيات',icon:'ctl',kind:'lib',types:['mcu','pc','psu','fuse','estop','switch','mosfet']},
+ {id:'motors',name:'Motor & Driver Library',ar:'مكتبة المحركات والدرايفرات',icon:'motor',kind:'lib',types:['driver','motor','spindle','heater','therm','fan']},
+ {id:'saved',name:'Saved Circuit Diagrams',ar:'الدوائر المحفوظة',icon:'saved',kind:'saved'}
+];
+const TIERS=[['economy','Economy','اقتصادي'],['balanced','Balanced','متوازن'],['premium','Premium','ممتاز']];
+const circuitFor=(cat,size,tier)=>CIRCUITS[`${cat}|${size.replace('×','×')}|${tier}`];
+
+/* ===== DATA LAYER 6: printer types (CoreXY, Delta, Multi-extruder) built on the stored RAMPS designs ===== */
+const clone=o=>JSON.parse(JSON.stringify(o));
+const lab=(c,id,t)=>{c.instances.find(i=>i.id===id).label=t;};
+function typed(size,tier,type){
+  const c=clone(CIRCUITS[`printer|${size}|${tier}`]);c.size=`${size} · ${type}`;c.id=null;
+  const T=s=>s.replace('Cartesian, bed-slinger',type).replace('Cartesian bed-slinger',type);
+  c.title=T(c.title);c.machine=T(c.machine);c.refs=c.refs.slice();
+  if(type==='CoreXY'){lab(c,'dx','A driver (X)');lab(c,'dy','B driver (Y)');lab(c,'mx','A motor (X)');lab(c,'my','B motor (Y)');
+    c.assumptions.unshift('CoreXY: the X and Y motor outputs drive the two belts together and the bed moves only in Z. The electronics are the same as the Cartesian design; only the firmware kinematics change (COREXY).');
+    c.fw.settings=Object.assign({'COREXY':'enabled (X and Y motors are the A and B belts)'},c.fw.settings);
+    c.differs+=' CoreXY: same wiring as Cartesian, firmware changes only.';}
+  if(type==='Delta'){[['dx','mx','ex','A'],['dy','my','ey','B'],['dz','mz','ez','C']].forEach(([d,m,e,n])=>{lab(c,d,`Tower ${n} driver`);lab(c,m,`Tower ${n} motor`);lab(c,e,`Tower ${n} top endstop`);});
+    const mp={'ctl.X_MIN':'ctl.X_MAX','ctl.Y_MIN':'ctl.Y_MAX','ctl.Z_MIN':'ctl.Z_MAX'};
+    c.conns.forEach(k=>{if(mp[k.b]){k.b=mp[k.b];k.net=k.net.replace('_MIN','_MAX');}});
+    c.assumptions.unshift('Delta: three tower motors move the effector together. Endstops are at the tower tops (max endstops). The build volume is a cylinder, so the width × depth in the size name is approximate.','Delta rod length, tower radius and printable radius are firmware values that depend on your frame. They are not stored here.');
+    c.fw.settings=Object.assign({'DELTA':'enabled','DELTA_DIAGONAL_ROD / DELTA_RADIUS / DELTA_PRINTABLE_RADIUS':'set from your frame, then calibrate','X/Y/Z_HOME_DIR':'1 (home at the top)'},c.fw.settings);
+    c.differs+=' Delta: three tower drivers, top endstops.';}
+  if(type==='Multi-extruder'){
+    const dm=c.instances.find(i=>i.id==='de').m,v24=!!c.instances.find(i=>i.id==='hot').m.match(/24/);
+    c.instances.push({id:'de1',m:dm,label:'Extruder 2 driver',x:700,y:1100},{id:'me1',m:'nema17p',label:'Extruder 2 motor',x:980,y:1100},
+      {id:'hot2',m:v24?'hotend24':'hotend',label:'Hotend 2 heater',x:700,y:1300},{id:'th2',m:'thermistor',label:'Hotend 2 thermistor',x:20,y:1130});
+    const tm=dm==='tmc2209',N=tm?{c1:'M1A',c2:'M1B',c3:'M2A',c4:'M2B',v:'VM'}:{c1:'1A',c2:'1B',c3:'2A',c4:'2B',v:'VMOT'};
+    c.conns.push(C('ctl.E1_STEP','de1.STEP','E1_STEP','step'),C('ctl.E1_DIR','de1.DIR','E1_DIR','dir'),C('ctl.E1_EN','de1.EN','E1_EN_N','en'),
+      C('ctl.VMOT',`de1.${N.v}`,'VMOT','power',{nl:1}),C('ctl.GND_S','de1.GND','GND','gnd',{nl:1}),
+      C(`de1.${N.c1}`,'me1.1A','E1_1A','mot'),C(`de1.${N.c2}`,'me1.1B','E1_1B','mot'),C(`de1.${N.c3}`,'me1.2A','E1_2A','mot'),C(`de1.${N.c4}`,'me1.2B','E1_2B','mot'),
+      C('ctl.T2','th2.A','T2','therm'),C('th2.B','ctl.GND','GND','gnd',{nl:1}),C('fuse.OUT','hot2.+',v24?'+24V':'+12V','power',{nl:1}),C('ctl.D9_HOTEND2','hot2.-','D9_HOTEND2','heat'));
+    if(tm)c.conns.push(C('ctl.+5V','de1.VIO','+5V','v5',{nl:1}));
+    rmI(c,['fan']);
+    c.assumptions.unshift('Multi-extruder: a second extruder motor, driver, hotend and thermistor use the RAMPS E1 outputs. The second hotend takes the D9 output, so the part-cooling fan from the single-extruder design is removed (add a fan on another output or a separate fan supply).');
+    c.omitted=(c.omitted||[]).filter(o=>!/fan/i.test(o)).concat(['Part-cooling fan (the D9 output now heats hotend 2)']);
+    c.fw.settings=Object.assign({'EXTRUDERS':'2','MOTHERBOARD':'BOARD_RAMPS_14_EEB (two extruders, bed)','TEMP_SENSOR_1':'1 (100k NTC)'},c.fw.settings);delete c.fw.settings['MOTHERBOARD '];
+    c.differs+=' Multi-extruder: adds the second extruder, hotend and thermistor on RAMPS E1.';}
+  reg(c);}
+const TYPES=['CoreXY','Delta','Multi-extruder'];
+const PSIZES=['180 × 180 × 180 mm','220 × 220 × 250 mm','250 × 250 × 250 mm','300 × 300 × 300 mm','350 × 350 × 350 mm','400 × 400 × 400 mm','500 × 500 × 500 mm'];
+TYPES.forEach(t=>PSIZES.forEach(s=>{if(t==='Delta'&&!['220 × 220 × 250 mm','300 × 300 × 300 mm','400 × 400 × 400 mm'].includes(s))return;
+  ['economy','balanced'].forEach(tier=>typed(s,tier,t));}));
+{const pc=CATS.find(c=>c.id==='printer');TYPES.forEach(t=>PSIZES.forEach(s=>{const k=`${s} · ${t}`;if(Object.keys(CIRCUITS).some(x=>x.startsWith('printer|'+k+'|')))pc.sizes.push(k);}));
+ pc.types=['Cartesian bed-slinger','CoreXY','Delta (220, 300, 400)','Multi-extruder'];}
+
+/* ===== UI ===== */
+const $=s=>document.querySelector(s);
+const S={view:'home',cat:null,size:null,tier:'economy',tab:'bom',sel:null,pins:true,nets:false,hide:new Set(),vb:null,tpl:null};
+const BADGE={Verified:'b-ok','Partially Verified':'b-ok',Preliminary:'b-pre',Incomplete:'b-inc','Not Verified':'b-inc'};
+let DL=null;
+const cache={};const vcache=c=>cache[c.id]||(cache[c.id]=validate(c));
+function toast(t){const e=document.createElement('div');e.className='toast';e.setAttribute('role','status');e.innerHTML=`<div>${esc(t)}</div>`;document.body.appendChild(e);setTimeout(()=>e.remove(),3200);}
+function saved(){try{return JSON.parse(localStorage.getItem('cnc-saved')||'[]');}catch(e){return[];}}
+function setSaved(a){try{localStorage.setItem('cnc-saved',JSON.stringify(a));}catch(e){}}
+const cur=()=>CIRCUITS[`${S.cat}|${S.size}|${S.tier}`];
+function go(p){S.q='';Object.assign(S,p);S.sel=null;S.vb=null;render();window.scrollTo(0,0);}
+
+function crumbs(){
+  const c=CATS.find(x=>x.id===S.cat);const a=[`<button data-go="home">الرئيسية / Home</button>`];
+  if(c)a.push(S.view==='cat'?`<b>${esc(c.name)}</b>`:`<button data-go="cat" data-cat="${c.id}">${esc(c.name)}</button>`);
+  if(S.view==='circuit')a.push(`<b>${esc(S.size)}</b>`);
+  return `<nav class="crumbs" aria-label="Breadcrumb">${a.join(' / ')}</nav>`;
+}
+function libNote(){const all=Object.values(CIRCUITS),n=all.length,by={};all.forEach(c=>{const s=vcache(c).status;by[s]=(by[s]||0)+1;});
+  return `Library status is stated honestly: ${n} circuits are stored (${Object.entries(by).map(([k,v])=>v+' '+k).join(', ')}). No circuit is marked Verified, because that needs a person to compare every pin with the datasheets. A size card shows a status only when a circuit with real components and wiring exists. Sizes without stored data show as Planned, and Mill classes, other printer sizes and the remaining laser classes are still in that state.`;}
+function home(){
+  return `<h2 class="sec">اختر نوع الماكينة · Choose a machine type</h2>
+  <div class="grid">${CATS.map(c=>{
+    const n=Object.values(CIRCUITS).filter(x=>x.cat===c.id).length;
+    return `<button class="tile" data-go="cat" data-cat="${c.id}">${icon(c.icon)}<h3>${esc(c.name)}</h3><p>${esc(c.ar)}</p><p>${esc(c.desc||'')}</p>
+    <span class="badge ${n?'b-pre':(c.kind==='size'?'b-plan':'b-info')}">${c.kind==='size'?(n?`${n} circuit${n>1?'s':''} stored (preliminary)`:'Planned, no circuit yet'):c.kind==='lib'?Object.values(COMPONENTS).filter(m=>c.types.includes(m.type)).length+' parts':`${saved().length} saved, ${Object.keys(CIRCUITS).length} indexed`}</span></button>`;}).join('')}</div>
+  <div class="note">${libNote()}</div>`;
+}
+function groupsOf(c){if(c.id!=='printer')return [['',c.sizes]];const T=['Cartesian bed-slinger','CoreXY','Delta','Multi-extruder'],g=T.map(t=>[t,[]]);
+  c.sizes.forEach(s=>{const m=s.match(/ · (.+)$/);const t=m?m[1]:'Cartesian bed-slinger';g.find(x=>x[0]===t)[1].push(s);});return g.filter(x=>x[1].length);}
+function catView(){
+  const c=CATS.find(x=>x.id===S.cat);
+  if(c.kind==='lib')return libView(c);
+  if(c.kind==='saved')return savedView();
+  return `${crumbs()}<h2 class="sec">${esc(c.name)} · ${esc(c.ar)}</h2>${c.types?`<p class="note" style="border-inline-start-color:var(--info)">Types planned: ${c.types.join(', ')}. The stored 220 × 220 × 250 mm project is a Cartesian bed-slinger.</p>`:''}
+  ${groupsOf(c).map(([h,l])=>(h?`<h3 class="sec">${h}</h3>`:'')+`<div class="grid">${l.map(s=>{
+    const has=TIERS.map(t=>CIRCUITS[`${c.id}|${s}|${t[0]}`]).filter(Boolean);
+    const st=has.length?vcache(has[0]).status:null;
+    return `<button class="tile" data-go="size" data-size="${esc(s)}">${icon(c.icon)}<h3>${esc(s)}</h3>
+      <p>${has.length?`${has.length} of 3 tiers stored`:'No stored circuit'}</p>
+      <span class="badge ${has.length?BADGE[st]:'b-plan'}">${has.length?'Circuit: '+st:'Planned'}</span></button>`;}).join('')}</div>`).join('')}`;
+}
+function sizeView(){ // choose tier
+  const c=CATS.find(x=>x.id===S.cat);
+  return `${crumbs()}<h2 class="sec">${esc(S.size)}: choose the electronics level</h2><div class="grid">${TIERS.map(([k,en,ar])=>{
+    const ci=CIRCUITS[`${S.cat}|${S.size}|${k}`];
+    return `<button class="tile" ${ci?`data-go="circuit" data-tier="${k}"`:'disabled'} style="${ci?'':'opacity:.65;cursor:not-allowed'}"><h3>${en} · ${ar}</h3>
+      <p>${ci?esc(ci.title):'No circuit stored for this level yet.'}</p><span class="badge ${ci?BADGE[vcache(ci).status]:'b-plan'}">${ci?vcache(ci).status:'Planned'}</span></button>`;}).join('')}</div>
+  ${CATS.find(x=>x.id===S.cat)&&Object.keys(CIRCUITS).some(k=>k.startsWith(S.cat+'|'+S.size+'|'))?'':'<div class="note">This size has no stored circuit yet. A circuit is added only when its parts, pin names and wiring can be sourced. It is never generated to fill a gap.</div>'}`;
+}
+const usedIn=mid=>Object.values(CIRCUITS).filter(c=>c.instances.some(i=>i.m===mid));
+const PS=m=>m.pinStatus==='unverified'?['b-inc','pins unverified']:m.pinStatus==='documented'?['b-ok','pins documented']:['b-pre','pins by function'];
+function compat(){const D=Object.values(COMPONENTS).filter(m=>m.type==='driver'&&m.id!=='vfd'),M=Object.values(COMPONENTS).filter(m=>m.type==='motor');
+  const cell=(d,m)=>d.imax==null||m.imax==null?'<span class="badge b-plan">unknown</span>':(m.imax<=d.imax?'<span class="badge b-ok">OK</span>':'<span class="badge b-inc">over</span>');
+  return `<h2 class="sec">Driver × motor current check</h2><p style="color:var(--muted);margin:0">Compares the motor rated phase current with the driver maximum current. "OK" means the driver can supply it. It does not check voltage, torque or heat.</p>
+  <div class="tbl"><table><tr><th>Driver (max A)</th>${M.map(m=>`<th>${esc(m.model)}<br><span class="mono">${m.imax==null?'?':m.imax+' A'}</span></th>`).join('')}</tr>${D.map(d=>`<tr><td>${esc(d.model)}<br><span class="mono">${d.imax==null?'?':d.imax+' A'}</span></td>${M.map(m=>`<td>${cell(d,m)}</td>`).join('')}</tr>`).join('')}</table></div>`;}
+function libView(c){
+  const parts=Object.values(COMPONENTS).filter(m=>c.types.includes(m.type)),q=(S.q||'').toLowerCase();
+  const list=parts.filter(m=>!q||(m.name+' '+m.model+' '+m.mfr+' '+m.type).toLowerCase().includes(q));
+  const unv=parts.filter(m=>m.pinStatus==='unverified').length,gn=parts.filter(m=>m.generic).length;
+  return `${crumbs()}<h2 class="sec">${esc(c.name)} · ${esc(c.ar)}</h2>
+  <div class="note" style="border-inline-start-color:var(--info)">${parts.length} parts: ${parts.filter(m=>m.pinStatus==='documented').length} with documented pins, ${gn} generic assumptions, ${unv} with unconfirmed pins. Each part lists the stored circuits that use it.</div>
+  <div class="toolbar" style="border:1px solid var(--line);border-radius:6px"><label for="lib-q">Search</label><input id="lib-q" type="search" value="${esc(S.q||'')}" placeholder="model, maker or type"> <span style="color:var(--muted)">${list.length} shown</span></div>
+  <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(300px,1fr))">${list.map(m=>{const u=usedIn(m.id),ps=PS(m);
+    return `<details class="tile"><summary style="cursor:pointer"><b>${esc(m.name)}</b><br><span class="mono">${esc(m.model)}</span><br><span class="badge ${ps[0]}">${ps[1]}</span> <span class="badge b-info">${u.length} circuit${u.length===1?'':'s'}</span></summary>${partTable(m)}
+    <p style="margin:6px 0 2px"><b>Used in</b></p><div class="exports">${u.slice(0,8).map(x=>`<button class="btn" data-go="open" data-id="${esc(x.id)}">${esc(x.size.replace(' cm','').replace(' mm',''))} · ${esc(x.tier)}</button>`).join('')||'<span style="color:var(--muted)">No stored circuit yet</span>'}${u.length>8?`<span style="color:var(--muted)">+${u.length-8} more</span>`:''}</div></details>`;}).join('')}</div>
+  ${c.id==='motors'?compat():''}`;
+}
+function partTable(m){
+  return `<dl class="kv" style="margin-top:8px"><dt>Maker</dt><dd>${esc(m.mfr)}</dd><dt>Voltage</dt><dd>${esc(m.volt)}</dd><dt>Current</dt><dd>${esc(m.current)}</dd><dt>Power</dt><dd>${m.power?m.power+' W (assumed load)':'—'}</dd>
+  <dt>Pin data</dt><dd>${m.pinStatus==='unverified'?'<span class="badge b-inc">unverified</span>':m.pinStatus==='documented'?'<span class="badge b-ok">documented</span> '+(m.src?`<a href="${m.src}" target="_blank" rel="noopener">source</a>`:''):'<span class="badge b-pre">by function</span>'+(m.src?` <a href="${m.src}" target="_blank" rel="noopener">datasheet</a>`:'')}</dd></dl>
+  <div class="tbl" style="margin-top:8px"><table><tr><th>Pin</th><th>Class</th><th>Function</th></tr>${m.pins.map(p=>`<tr><td class="mono">${esc(p.id)}</td><td>${esc(WIRE[p.cls]?WIRE[p.cls].label:p.cls)}</td><td>${esc(p.desc)}</td></tr>`).join('')}</table></div><p>${esc(m.note||'')}</p>`;
+}
+function savedView(){
+  const s=saved().map(id=>CIRCUITS[id]).filter(Boolean),all=Object.values(CIRCUITS);
+  const cats=[...new Set(all.map(c=>c.cat))],sts=['Preliminary','Incomplete'];
+  const rows=all.filter(c=>(!S.fc||c.cat===S.fc)&&(!S.fs||vcache(c).status===S.fs));
+  return `${crumbs()}<h2 class="sec">Saved Circuit Diagrams · الدوائر المحفوظة</h2>
+  <h3 style="margin:0;font-size:14px">Your saved circuits</h3>${s.length?`<div class="grid">${s.map(c=>`<div class="tile"><button class="btn" data-go="open" data-id="${esc(c.id)}">${esc(c.cat)} · ${esc(c.size)} · ${esc(c.tier)}</button><p>${esc(c.title)}</p><button class="btn" data-unsave="${esc(c.id)}">Remove</button></div>`).join('')}</div>`:'<div class="note" style="border-inline-start-color:var(--info)">Nothing saved yet. Open a circuit and press "Save to library". Saved entries stay in this browser only.</div>'}
+  <h3 style="margin:8px 0 0;font-size:14px">Library index · all ${all.length} stored circuits</h3>
+  <div class="toolbar" style="border:1px solid var(--line);border-radius:6px"><label for="ix-cat">Section</label><select id="ix-cat"><option value="">All</option>${cats.map(k=>`<option ${S.fc===k?'selected':''}>${k}</option>`).join('')}</select>
+   <label for="ix-st">Status</label><select id="ix-st"><option value="">All</option>${sts.map(k=>`<option ${S.fs===k?'selected':''}>${k}</option>`).join('')}</select><span style="color:var(--muted)">${rows.length} shown</span></div>
+  <div class="tbl"><table><tr><th>Section</th><th>Size / class</th><th>Level</th><th>Status</th><th>Parts</th><th></th></tr>${rows.map(c=>`<tr><td>${esc(c.cat)}</td><td>${esc(c.size)}</td><td>${esc(c.tier)}</td><td><span class="badge ${BADGE[vcache(c).status]}">${vcache(c).status}</span></td><td class="num">${c.instances.length}</td><td><button class="btn" data-go="open" data-id="${esc(c.id)}">Open</button></td></tr>`).join('')}</table></div>`;
+}
+
+/* ---- circuit page ---- */
+function circuitView(){
+  const c=cur(),v=vcache(c);
+  return `${crumbs()}
+  <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between">
+   <div><h2 class="sec" style="margin:0">${esc(c.title)}</h2><div style="color:var(--muted);font-size:12.5px">${esc(c.machine)}</div></div>
+   <div class="tiers" role="group" aria-label="Electronics level">${TIERS.map(([k,en])=>{const x=CIRCUITS[`${S.cat}|${S.size}|${k}`];
+     return `<button class="btn" data-go="tier" data-tier="${k}" aria-pressed="${k===S.tier}" ${x?'':'disabled style="opacity:.5"'}>${en}${x?` <span class="badge ${BADGE[vcache(x).status]}">${vcache(x).status}</span>`:''}</button>`;}).join('')}</div></div>
+  <div class="note" style="border-inline-start-color:var(${v.errs?'--bad':'--warn'})"><b>Status: ${v.status}.</b> ${esc(v.why)}</div>
+  <div class="stage"><div class="sheet"><div class="toolbar">
+     <button class="btn" data-z="in" aria-label="Zoom in">＋</button><button class="btn" data-z="out" aria-label="Zoom out">－</button><button class="btn" data-z="fit">Fit</button>
+     <label><input type="checkbox" id="tg-pins" ${S.pins?'checked':''}> Pin names</label><label><input type="checkbox" id="tg-nets" ${S.nets?'checked':''}> Net names</label>
+     <span style="flex:1"></span><button class="btn pri" data-exp="pdf">تصدير PDF</button><button class="btn pri" data-exp="png">تصدير صورة</button><button class="btn" data-exp="shop-pdf">قائمة الشراء</button><button class="btn" data-act="save">Save to library</button></div>
+   <div class="canvas" id="canvas" role="img" aria-label="Interactive circuit diagram"><svg id="svg" xmlns="http://www.w3.org/2000/svg"></svg></div>
+   <div class="legend" id="legend"></div></div>
+   <aside class="drawer" id="drawer" aria-live="polite"></aside></div>
+  <div class="tabs" role="tablist">${[['bom','Components / BOM'],['shop','قائمة الشراء'],['pp','Pin-to-Pin'],['val','Validation'],['basis','Basis & assumptions'],['exp','Export']].map(([k,l])=>`<button role="tab" data-tab="${k}" aria-selected="${S.tab===k}">${l}${k==='val'?` (${v.errs} err, ${v.warns} warn)`:''}</button>`).join('')}</div>
+  <div id="tabbody">${tabBody(c,v)}</div>`;
+}
+function legendHTML(c){
+  const used=[...new Set(c.conns.map(k=>k.cls))];
+  return used.map(k=>`<label style="cursor:pointer"><input type="checkbox" data-hide="${k}" ${S.hide.has(k)?'':'checked'}> <i style="border-color:${WIRE[k].color};${WIRE[k].dash?'border-top-style:dashed':''}"></i>${esc(WIRE[k].label)} <span style="color:var(--muted)">(${WIRE[k].kind})</span></label>`).join('')+
+   `<span style="color:var(--muted)">Colours are display defaults. Each wire also shows its signal name. Dashed outline on a part = pin names unconfirmed.</span>`;
+}
+function bomRows(c){
+  const g={};c.instances.forEach(i=>{const m=model(i);const k=i.m+'|'+m.model;(g[k]=g[k]||{m,labels:[],id:i.m}).labels.push(i.label);});
+  return Object.values(g);
+}
+function tabBody(c,v){
+  if(S.tab==='bom')return `<div class="tbl"><table><tr><th>Qty</th><th>Part</th><th>Model</th><th>Where used</th><th>Rating</th><th>Data</th></tr>${bomRows(c).map(r=>`<tr><td class="num">${r.labels.length}</td><td>${esc(r.m.name)}</td><td class="mono">${esc(r.m.model)}</td><td>${esc(r.labels.join(', '))}</td><td>${esc(r.m.volt)}; ${esc(r.m.current)}</td>
+    <td>${r.m.pinStatus==='unverified'?'<span class="badge b-inc">unverified</span>':r.m.generic?'<span class="badge b-pre">generic, choose part</span>':'<span class="badge b-ok">named model</span>'}</td></tr>`).join('')}</table></div>`;
+  if(S.tab==='shop')return shopTab(c);
+  if(S.tab==='pp')return `<div class="tbl"><table><tr><th>#</th><th>From</th><th>To</th><th>Signal</th><th>Type</th><th>Wire colour</th></tr>${ppRows(c).map((r,i)=>`<tr data-wr="${i}" style="cursor:pointer"><td class="num">${i+1}</td><td class="mono">${esc(r.from)}</td><td class="mono">${esc(r.to)}</td><td class="mono">${esc(r.net)}</td><td>${r.kind}</td><td><span class="sw" style="background:${WIRE[r.cls].color}"></span>${esc(WIRE[r.cls].label)}</td></tr>`).join('')}</table></div>`;
+  if(S.tab==='val')return `<div class="drawer">${v.items.map(r=>`<div class="chk"><span class="d d-${r.lvl}"></span><span>${esc(r.txt)}</span></div>`).join('')}</div>`;
+  if(S.tab==='basis')return `<div class="drawer"><h3>Engineering basis</h3><p>${esc(c.basis)}</p><h3>How this tier differs</h3><p>${esc(c.differs)}</p><h3>Assumptions</h3><ul>${c.assumptions.map(a=>`<li>${esc(a)}</li>`).join('')}</ul>
+   ${c.omitted?`<h3>Not included</h3><ul>${c.omitted.map(a=>`<li>${esc(a)}</li>`).join('')}</ul>`:''}${c.todo?`<h3>Open items</h3><ul>${c.todo.map(a=>`<li>${esc(a)}</li>`).join('')}</ul>`:''}
+   <h3>Sources</h3><ul>${c.refs.map(r=>`<li><a href="${r.u}" target="_blank" rel="noopener">${esc(r.t)}</a></li>`).join('')}</ul></div>`;
+  return `<div class="drawer"><div class="exports">${[['svg','Export Vector SVG'],['pdf','Export Circuit PDF'],['csv-comp','Component List CSV'],['csv-pp','Pin-to-Pin CSV'],['png','Export Image PNG'],['shop-pdf','Shopping List PDF'],['shop-csv','Shopping List CSV'],['csv-bom','BOM CSV'],['fw','Firmware Configuration'],['zip','Complete Project ZIP']].map(([k,l])=>`<button class="btn ${k==='svg'?'pri':''}" data-exp="${k}">${l}</button>`).join('')}</div>
+   <p style="color:var(--muted);font-size:12.5px;margin:0">Each export opens a save prompt. The SVG keeps every part, wire and label as vectors. PDF text is English only.</p></div>`;
+}
+function ppRows(c){return c.conns.map(k=>{const [ai,ap]=split(k.a),[bi,bp]=split(k.b);const A=c.instances.find(i=>i.id===ai),B=c.instances.find(i=>i.id===bi);
+  return {from:`${A.label}.${ap}`,to:`${B.label}.${bp}`,net:k.net,cls:k.cls,kind:WIRE[k.cls].kind,model:`${model(A).model} / ${model(B).model}`};});}
+
+function drawerHTML(c){
+  const s=S.sel;
+  if(!s)return `<h3>Project</h3><dl class="kv"><dt>Machine</dt><dd>${esc(c.cat)} ${esc(c.size)}</dd><dt>Level</dt><dd>${esc(c.tier)}</dd><dt>Parts</dt><dd>${c.instances.length}</dd><dt>Wires</dt><dd>${c.conns.length}</dd><dt>Firmware</dt><dd>${esc(c.fw.firmware)}</dd></dl>
+   <p style="color:var(--muted);margin:0">Click a part to see its data and highlight its wires. Click a wire to see both of its connection points.</p>`;
+  if(s.type==='cmp'){const i=c.instances.find(x=>x.id===s.id),m=model(i);
+    const rel=c.conns.filter(k=>split(k.a)[0]===i.id||split(k.b)[0]===i.id);
+    return `<h3>${esc(i.label)}</h3><div class="mono">${esc(m.model)}</div>${partTable(m)}<h3 style="font-size:13px">Connected pins</h3><div class="tbl"><table><tr><th>Pin</th><th>Goes to</th><th>Signal</th></tr>${rel.map(k=>{const mine=split(k.a)[0]===i.id;const [oi,op]=split(mine?k.b:k.a);const o=c.instances.find(x=>x.id===oi);
+      return `<tr><td class="mono">${esc(split(mine?k.a:k.b)[1])}</td><td>${esc(o.label)}.<span class="mono">${esc(op)}</span></td><td class="mono">${esc(k.net)}</td></tr>`;}).join('')}</table></div><button class="btn" data-clear>Clear selection</button>`;}
+  const k=c.conns[+s.id],[ai,ap]=split(k.a),[bi,bp]=split(k.b),A=c.instances.find(i=>i.id===ai),B=c.instances.find(i=>i.id===bi);
+  return `<h3>Wire: <span class="mono">${esc(k.net)}</span></h3><dl class="kv"><dt>Type</dt><dd><span class="sw" style="background:${WIRE[k.cls].color}"></span>${esc(WIRE[k.cls].label)} (${WIRE[k.cls].kind})</dd>
+   <dt>Point A</dt><dd>${esc(A.label)} <span class="mono">${esc(model(A).model)}</span><br>pin <b class="mono">${esc(ap)}</b>: ${esc(model(A).pins.find(p=>p.id===ap).desc)}</dd>
+   <dt>Point B</dt><dd>${esc(B.label)} <span class="mono">${esc(model(B).model)}</span><br>pin <b class="mono">${esc(bp)}</b>: ${esc(model(B).pins.find(p=>p.id===bp).desc)}</dd><dt>Drawing</dt><dd>${k.nl?'Net-label stubs (same net name at both ends)':'Direct line'}</dd></dl><button class="btn" data-clear>Clear selection</button>`;
+}
+function paint(){
+  const c=cur();if(!c)return;const svg=$('#svg');if(!svg)return;
+  const d=drawCircuit(c,{sel:S.sel,showPins:S.pins,showNets:S.nets,hide:S.hide});
+  if(!S.vb)S.vb=Object.assign({},d.bbox);
+  svg.setAttribute('viewBox',`${S.vb.x} ${S.vb.y} ${S.vb.w} ${S.vb.h}`);svg.innerHTML=d.inner;
+  $('#drawer').innerHTML=drawerHTML(c);$('#legend').innerHTML=legendHTML(c);
+}
+function zoom(f,cx,cy){const v=S.vb,cvs=$('#canvas').getBoundingClientRect();
+  const px=cx===undefined?.5:(cx-cvs.left)/cvs.width,py=cy===undefined?.5:(cy-cvs.top)/cvs.height;
+  const nw=v.w*f,nh=v.h*f;v.x+=(v.w-nw)*px;v.y+=(v.h-nh)*py;v.w=nw;v.h=nh;paint();}
+function render(){
+  const a=$('#app');
+  a.innerHTML=S.view==='home'?home():S.view==='cat'?catView():S.view==='size'?sizeView():circuitView();
+  if(S.view==='circuit')paint();
+}
+function open(id){const c=CIRCUITS[id];Object.assign(S,{view:'circuit',cat:c.cat,size:c.size,tier:c.tier,tab:'bom',sel:null,vb:null});render();}
+document.addEventListener('click',e=>{
+  const un=e.target.closest('[data-unsave]');if(un){setSaved(saved().filter(x=>x!==un.dataset.unsave));render();return;}
+  const t=e.target.closest('[data-go],[data-z],[data-tab],[data-exp],[data-act],[data-clear],[data-wr]');
+  if(!t){const w=e.target.closest('[data-w]'),cm=e.target.closest('[data-c]');
+    if(S.view==='circuit'&&e.target.closest('#svg')){if(w)S.sel={type:'wire',id:w.dataset.w};else if(cm)S.sel={type:'cmp',id:cm.dataset.c};else return;paint();}
+    return;}
+  const d=t.dataset;
+  if(d.go==='home')return go({view:'home',cat:null,size:null});
+  if(d.go==='cat')return go({view:'cat',cat:d.cat,size:null});
+  if(d.go==='size'){const c=CATS.find(x=>x.id===S.cat);const has=TIERS.find(x=>CIRCUITS[`${c.id}|${d.size}|${x[0]}`]);S.size=d.size;return go(has?{view:'size',size:d.size}:{view:'size',size:d.size});}
+  if(d.go==='circuit'||d.go==='tier')return go({view:'circuit',tier:d.tier,tab:S.tab});
+  if(d.go==='open')return open(d.id);
+  if(d.z){if(d.z==='fit'){S.vb=null;return paint();}return zoom(d.z==='in'?.8:1.25);}
+  if(d.tab){S.tab=d.tab;const c=cur();document.querySelectorAll('[data-tab]').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===S.tab));$('#tabbody').innerHTML=tabBody(c,vcache(c));return;}
+  if(d.clear!==undefined){S.sel=null;return paint();}
+  if(d.wr!==undefined){S.sel={type:'wire',id:d.wr};paint();$('#canvas').scrollIntoView({block:'center'});return;}
+  if(d.act==='save'){const s=saved(),id=cur().id;if(!s.includes(id)){s.push(id);setSaved(s);}toast('Saved to the Saved Circuit Diagrams list (this browser).');return;}
+  if(d.exp)return doExport(d.exp);
+});
+document.addEventListener('input',e=>{if(e.target.id==='lib-q'){const p=e.target.selectionStart;S.q=e.target.value;render();const el=$('#lib-q');if(el){el.focus();el.setSelectionRange(p,p);}}});
+document.addEventListener('change',e=>{
+  if(e.target.id==='ix-cat'){S.fc=e.target.value;render();}
+  if(e.target.id==='ix-st'){S.fs=e.target.value;render();}
+  if(e.target.id==='tg-pins'){S.pins=e.target.checked;paint();}
+  if(e.target.id==='tg-nets'){S.nets=e.target.checked;paint();}
+  if(e.target.dataset&&e.target.dataset.hide){e.target.checked?S.hide.delete(e.target.dataset.hide):S.hide.add(e.target.dataset.hide);paint();}
+});
+/* pan + wheel zoom */
+let drag=null;
+document.addEventListener('pointerdown',e=>{const cv=e.target.closest('#canvas');if(!cv||e.target.closest('[data-w],[data-c]'))return;drag={x:e.clientX,y:e.clientY};cv.classList.add('drag');cv.setPointerCapture(e.pointerId);});
+document.addEventListener('pointermove',e=>{if(!drag||!S.vb)return;const r=$('#canvas').getBoundingClientRect();
+  S.vb.x-=(e.clientX-drag.x)*S.vb.w/r.width;S.vb.y-=(e.clientY-drag.y)*S.vb.h/r.height;drag={x:e.clientX,y:e.clientY};
+  $('#svg').setAttribute('viewBox',`${S.vb.x} ${S.vb.y} ${S.vb.w} ${S.vb.h}`);});
+document.addEventListener('pointerup',()=>{drag=null;const c=$('#canvas');c&&c.classList.remove('drag');});
+document.addEventListener('wheel',e=>{if(e.target.closest('#canvas')&&S.vb){e.preventDefault();zoom(e.deltaY<0?.88:1.14,e.clientX,e.clientY);}},{passive:false});
+
+/* ===== EXPORTS ===== */
+const csv=rows=>rows.map(r=>r.map(x=>{x=String(x==null?'':x);return /[",\n]/.test(x)?'"'+x.replace(/"/g,'""')+'"':x;}).join(',')).join('\r\n')+'\r\n';
+const fname=(c,ext,suf)=>`cnc-${c.cat}-${c.size.replace(/[^\w]+/g,'-').replace(/^-|-$/g,'')}-${c.tier}${suf||''}.${ext}`;
+function compCSV(c){return csv([['Ref','Label','Model','Type','Maker','Voltage','Current','Assumed load W','Pin data']].concat(c.instances.map(i=>{const m=model(i);return [i.id,i.label,m.model,m.type,m.mfr,m.volt,m.current,m.power||'',m.pinStatus];})));}
+function ppCSV(c){return csv([['#','From','To','Signal','Class','Type','Wire colour (display default)','Drawn as']].concat(ppRows(c).map((r,i)=>[i+1,r.from,r.to,r.net,r.cls,r.kind,WIRE[r.cls].label,c.conns[i].nl?'net label':'line'])));}
+function bomCSV(c){return csv([['Qty','Part','Model','Used for','Rating','Data status']].concat(bomRows(c).map(r=>[r.labels.length,r.m.name,r.m.model,r.labels.join('; '),r.m.volt+'; '+r.m.current,r.m.pinStatus==='unverified'?'unverified':r.m.generic?'generic assumption':'named model'])));}
+function fwJSON(c){
+  const pins=[];c.conns.forEach(k=>[k.a,k.b].forEach(e=>{const [i,p]=split(e);if(i!=='ctl')return;const m=model(c.instances.find(x=>x.id===i)).pins.find(q=>q.id===p);
+    if(!pins.some(q=>q.pin===p&&q.signal===k.net))pins.push({signal:k.net,controllerPin:p,arduinoPin:m.arduino||null,note:m.desc});}));
+  return JSON.stringify({project:c.id,title:c.title,firmware:c.fw.firmware,status:vcache(c).status,
+    note:'Preliminary. Compare with your firmware build before use. Mechanical settings (steps per mm, speeds) are not stored here because they depend on your machine.',
+    settings:c.fw.settings,pinMap:pins},null,2);
+}
+function svgToCanvas(svg,W,H){return new Promise((res,rej)=>{const im=new Image();im.onload=()=>{const cv=document.createElement('canvas');cv.width=W;cv.height=H;const x=cv.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,W,H);x.drawImage(im,0,0,W,H);res(cv);};im.onerror=rej;
+  im.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);});}
+async function pdfBlob(c){
+  const J=window.jspdf;if(!J)throw new Error('PDF library not loaded');
+  const svg=exportSVG(c),m=svg.match(/viewBox="0 0 ([\d.]+) ([\d.]+)"/),vw=+m[1],vh=+m[2],sc=2;
+  const cv=await svgToCanvas(svg,Math.round(vw*sc),Math.round(vh*sc));
+  const pdf=new J.jsPDF({orientation:'landscape',unit:'pt',format:'a3'}),PW=pdf.internal.pageSize.getWidth(),PH=pdf.internal.pageSize.getHeight();
+  const r=Math.min((PW-60)/vw,(PH-60)/vh);pdf.addImage(cv.toDataURL('image/jpeg',.92),'JPEG',30,30,vw*r,vh*r);
+  pdf.addPage('a4','portrait');let y=40;const line=(t,s,b)=>{pdf.setFontSize(s||9);pdf.setFont('helvetica',b?'bold':'normal');
+    pdf.splitTextToSize(String(t),520).forEach(l=>{if(y>800){pdf.addPage('a4','portrait');y=40;}pdf.text(l,36,y);y+=(s||9)+3.5;});};
+  const v=vcache(c);line(c.title,13,1);line(`Status: ${v.status}. ${v.why}`);y+=6;
+  line('Wire colour key (display defaults, not a wiring-colour code)',10,1);[...new Set(c.conns.map(k=>k.cls))].forEach(k=>line(`${WIRE[k].label} (${WIRE[k].kind})`));y+=6;
+  line('Warnings and open items',10,1);v.items.filter(i=>i.lvl!=='ok').forEach(i=>line(`- [${i.lvl}] ${i.txt}`));y+=6;
+  line('Components',10,1);bomRows(c).forEach(r=>line(`${r.labels.length} x ${r.m.model}  (${r.labels.join(', ')})`));y+=6;
+  line('Pin-to-Pin',10,1);ppRows(c).forEach((r,i)=>line(`${i+1}. ${r.from} -> ${r.to}   [${r.net}, ${r.cls}]`,8));y+=6;
+  line('References',10,1);c.refs.forEach(r=>line(`${r.t}: ${r.u}`,8));
+  return pdf.output('blob');
+}
+/* ===== SHOPPING LIST (per circuit) ===== */
+function shopRows(c){
+  const rows=bomRows(c).map(r=>({qty:r.labels.length,name:r.m.name,model:r.m.model,rating:`${r.m.volt}; ${r.m.current}`,where:r.labels.join(', '),
+    note:r.m.pinStatus==='unverified'?'غير مؤكد: راجع الداتاشيت قبل الشراء':r.m.generic?'عام: حدّد الماركة حسب المواصفات':''}));
+  const pw=c.conns.filter(k=>WIRE[k.cls].kind==='Power').length,sg=c.conns.length-pw;
+  const ex=[{qty:pw+' وصلة',name:'أسلاك الطاقة والمحركات',model:'سلك نحاسي مرن',rating:'المقطع حسب التيار',where:'وصلات الطاقة والأرضي وملفات المحركات',note:'غير مرسومة في المخطط'},
+    {qty:sg+' وصلة',name:'أسلاك الإشارة',model:'سلك رفيع / كيبل مجدول',rating:'—',where:'STEP / DIR / ENABLE / حساسات',note:'يُفضّل كيبل مشبّك للمسافات الطويلة'},
+    {qty:'حسب الحاجة',name:'مستلزمات التوصيل',model:'فيرول، مشابك، ربّاطات، عازل حراري',rating:'—',where:'الطرفيات والتجميع',note:'غير مرسومة في المخطط'}];
+  return {parts:rows,extra:ex};
+}
+function shopTab(c){
+  const {parts,extra}=shopRows(c),n=parts.reduce((a,r)=>a+r.qty,0),tr=r=>`<tr><td class="num">${esc(r.qty)}</td><td>${esc(r.name)}</td><td class="mono">${esc(r.model)}</td><td>${esc(r.rating)}</td><td>${esc(r.where)}</td><td>${esc(r.note)}</td></tr>`;
+  return `<div class="drawer"><div class="exports"><button class="btn pri" data-exp="shop-pdf">تحميل قائمة الشراء PDF</button><button class="btn" data-exp="shop-csv">CSV (Excel)</button></div>
+   <div class="tbl"><table><tr><th>الكمية</th><th>القطعة</th><th>الموديل</th><th>المواصفات</th><th>مكان الاستخدام</th><th>ملاحظات</th></tr>${parts.map(tr).join('')}
+   <tr><th colspan="6">مستلزمات إضافية (غير مرسومة)</th></tr>${extra.map(tr).join('')}</table></div>
+   <p style="color:var(--muted);font-size:12.5px;margin:0">إجمالي القطع المرسومة: ${n}. الأسعار غير مضمّنة لأنها تختلف حسب المورّد؛ ملف PDF فيه عمود فارغ للسعر وخانة اختيار لكل قطعة.</p></div>`;
+}
+function shopCSV(c){const {parts,extra}=shopRows(c);return '\ufeff'+csv([['الكمية','القطعة','الموديل','المواصفات','مكان الاستخدام','ملاحظات','السعر']].concat(parts.concat(extra).map(r=>[r.qty,r.name,r.model,r.rating,r.where,r.note,''])));}
+async function shopPdfBlob(c){
+  const J=window.jspdf;if(!J)throw new Error('PDF library not loaded');
+  try{await document.fonts.load('22px "IBM Plex Sans Arabic"');}catch(e){}
+  const W=1240,H=1754,M=60,F='"IBM Plex Sans Arabic","Segoe UI",Arial,sans-serif',{parts,extra}=shopRows(c);
+  const cols=[['',40],['الكمية',90],['القطعة',220],['الموديل',220],['المواصفات',190],['مكان الاستخدام / ملاحظات',270],['السعر',90]];
+  const pages=[];let cv,x,y;
+  const wrap=(t,w)=>{const o=[];let l='';String(t).split(/\s+/).forEach(wd=>{const n=l?l+' '+wd:wd;if(x.measureText(n).width>w&&l){o.push(l);l=wd;}else l=n;});o.push(l);return o;};
+  const head=()=>{let cx=M;x.fillStyle='#e8edef';x.fillRect(M,y,W-2*M,40);x.fillStyle='#10222b';x.font='600 20px '+F;
+    cols.forEach(([t,w])=>{x.fillText(t,cx+8,y+27);cx+=w;});y+=40;};
+  const page=()=>{cv=document.createElement('canvas');cv.width=W;cv.height=H;x=cv.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,W,H);x.textBaseline='alphabetic';pages.push(cv);y=M;
+    if(pages.length===1){x.fillStyle='#10222b';x.font='600 34px '+F;wrap(c.title,W-2*M).forEach(l=>{x.fillText(l,M,y+30);y+=42;});
+      x.fillStyle='#566b74';x.font='20px '+F;x.fillText('قائمة الشراء · '+new Date().toISOString().slice(0,10)+' · '+c.cat+' '+c.size+' / '+c.tier,M,y+16);y+=40;}
+    head();};
+  const sect=t=>{if(y+110>H-M)page();x.fillStyle='#d9e6e5';x.fillRect(M,y,W-2*M,34);x.fillStyle='#10222b';x.font='600 19px '+F;x.fillText(t,M+8,y+24);y+=34;};
+  const row=r=>{x.font='20px '+F;const cells=[null,String(r.qty),r.name,r.model,r.rating,r.where+(r.note?' — '+r.note:''),''];
+    const L=cells.map((t,i)=>t===null||i===6?[]:wrap(t,cols[i][1]-14)),h=Math.max(52,Math.max(...L.map(a=>a.length))*26+18);
+    if(y+h>H-M-60)page();x.font='20px '+F;let cx=M;x.strokeStyle='#c3cfd4';x.lineWidth=1.5;
+    cols.forEach(([t,w],i)=>{x.strokeRect(cx,y,w,h);x.fillStyle='#10222b';if(i===0)x.strokeRect(cx+9,y+h/2-11,22,22);else L[i].forEach((l,j)=>x.fillText(l,cx+8,y+30+j*26));cx+=w;});y+=h;};
+  page();parts.forEach(row);sect('مستلزمات إضافية (غير مرسومة في المخطط)');extra.forEach(row);
+  y+=34;if(y>H-M-20)page();x.fillStyle='#10222b';x.font='600 22px '+F;x.fillText('إجمالي القطع المرسومة: '+parts.reduce((a,r)=>a+r.qty,0)+'        الإجمالي الكلي: ______________',M,y);
+  const pdf=new J.jsPDF({orientation:'portrait',unit:'pt',format:'a4'}),PW=pdf.internal.pageSize.getWidth(),PH=pdf.internal.pageSize.getHeight();
+  pages.forEach((p,i)=>{if(i)pdf.addPage('a4','portrait');pdf.addImage(p.toDataURL('image/jpeg',.92),'JPEG',0,0,PW,PH);});
+  return pdf.output('blob');
+}
+async function pngBlob(c){const svg=exportSVG(c),m=svg.match(/viewBox="0 0 ([\d.]+) ([\d.]+)"/),vw=+m[1],vh=+m[2],sc=Math.min(3,8000/Math.max(vw,vh));
+  const cv=await svgToCanvas(svg,Math.round(vw*sc),Math.round(vh*sc));return new Promise(r=>cv.toBlob(r,'image/png'));}
+async function saveFile(name,data){if(DL){await DL.save({filename:name,data});return;}const b=data instanceof Blob?data:new Blob([data]),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);}
+async function doExport(k){
+  const c=cur();
+  try{
+    let name,data;
+    if(k==='svg'){name=fname(c,'svg');data=exportSVG(c);}
+    else if(k==='csv-comp'){name=fname(c,'csv','-components');data=compCSV(c);}
+    else if(k==='csv-pp'){name=fname(c,'csv','-pin-to-pin');data=ppCSV(c);}
+    else if(k==='csv-bom'){name=fname(c,'csv','-bom');data=bomCSV(c);}
+    else if(k==='fw'){name=fname(c,'json','-firmware');data=fwJSON(c);}
+    else if(k==='pdf'){name=fname(c,'pdf');data=await pdfBlob(c);}
+    else if(k==='png'){name=fname(c,'png');data=await pngBlob(c);}
+    else if(k==='shop-pdf'){name=fname(c,'pdf','-shopping-list');data=await shopPdfBlob(c);}
+    else if(k==='shop-csv'){name=fname(c,'csv','-shopping-list');data=shopCSV(c);}
+    else if(k==='zip'){if(!window.JSZip)throw new Error('ZIP library not loaded');const z=new JSZip(),b=fname(c,'x').slice(0,-2);
+      z.file(b+'.svg',exportSVG(c));z.file(b+'-components.csv',compCSV(c));z.file(b+'-pin-to-pin.csv',ppCSV(c));z.file(b+'-bom.csv',bomCSV(c));z.file(b+'-shopping-list.csv',shopCSV(c));z.file(b+'-firmware.json',fwJSON(c));
+      z.file('README.txt',`${c.title}\nStatus: ${vcache(c).status}\n${vcache(c).why}\nGenerated from stored component and connection data. Preliminary: compare with datasheets before wiring.\n`);
+      try{z.file(b+'.pdf',await pdfBlob(c));}catch(e){}
+      name=b+'-project.zip';data=await z.generateAsync({type:'blob'});}
+    await saveFile(name,data);toast('Saved '+name);
+  }catch(e){if(e&&e.code==='declined')return;toast('Export failed: '+((e&&e.message)||'unknown error'));}
+}
+/* boot */
+(async()=>{try{DL=window.claude?await claude.use('downloads'):null;}catch(e){DL=null;}})();
+render();
+
+</script>
+
+</body></html>
